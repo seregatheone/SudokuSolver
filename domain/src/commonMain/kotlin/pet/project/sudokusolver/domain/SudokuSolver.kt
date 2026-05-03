@@ -5,6 +5,14 @@ class SudokuSolver {
 
     fun hint(grid: SudokuGrid): SudokuSolutionStep? = solveInternal(grid)?.steps?.firstOrNull()
 
+    fun hintForPattern(grid: SudokuGrid, pattern: SudokuSolvingPattern): SudokuSolutionStep? {
+        val board = grid.values().map { it ?: 0 }.toIntArray()
+        if (!isValidBoard(board)) return null
+        return findStepForPattern(board, initialCandidates(grid, board), pattern)
+    }
+
+    fun supportedPatterns(): List<SudokuSolvingPattern> = StrategyOrder
+
     private fun solveInternal(grid: SudokuGrid): SudokuSolveResult? {
         val board = grid.values().map { it ?: 0 }.toIntArray()
         if (!isValidBoard(board)) return null
@@ -41,16 +49,35 @@ class SudokuSolver {
     }
 
     private fun findLogicalStep(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
-        findNakedSingle(board, candidates)?.let { return it }
-        findHiddenSingles(board, candidates)?.let { return it }
-        findNakedSubset(board, candidates, size = 2)?.let { return it }
-        findNakedSubset(board, candidates, size = 3)?.let { return it }
-        findNakedSubset(board, candidates, size = 4)?.let { return it }
-        findHiddenSubset(board, candidates, size = 2)?.let { return it }
-        findHiddenSubset(board, candidates, size = 3)?.let { return it }
-        findHiddenSubset(board, candidates, size = 4)?.let { return it }
-        findPointingSet(board, candidates)?.let { return it }
-        return findBoxLineReduction(board, candidates)
+        for (pattern in StrategyOrder) {
+            findStepForPattern(board, candidates, pattern)?.let { return it }
+        }
+        return null
+    }
+
+    private fun findStepForPattern(
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        pattern: SudokuSolvingPattern,
+    ): SudokuSolutionStep? = when (pattern) {
+        SudokuSolvingPattern.NakedSingle -> findNakedSingle(board, candidates)
+        SudokuSolvingPattern.HiddenSingle -> findHiddenSingles(board, candidates)
+        SudokuSolvingPattern.NakedPair -> findNakedSubset(board, candidates, size = 2)
+        SudokuSolvingPattern.NakedTriple -> findNakedSubset(board, candidates, size = 3)
+        SudokuSolvingPattern.NakedQuad -> findNakedSubset(board, candidates, size = 4)
+        SudokuSolvingPattern.HiddenPair -> findHiddenSubset(board, candidates, size = 2)
+        SudokuSolvingPattern.HiddenTriple -> findHiddenSubset(board, candidates, size = 3)
+        SudokuSolvingPattern.HiddenQuad -> findHiddenSubset(board, candidates, size = 4)
+        SudokuSolvingPattern.LockedCandidatesPointing -> findPointingSet(board, candidates)
+        SudokuSolvingPattern.ClaimingBoxLineReduction -> findBoxLineReduction(board, candidates)
+        SudokuSolvingPattern.XWing -> findFish(board, candidates, size = 2, pattern = pattern)
+        SudokuSolvingPattern.Swordfish -> findFish(board, candidates, size = 3, pattern = pattern)
+        SudokuSolvingPattern.Jellyfish -> findFish(board, candidates, size = 4, pattern = pattern)
+        SudokuSolvingPattern.FinnedXWing -> findFinnedFish(board, candidates, size = 2, pattern = pattern)
+        SudokuSolvingPattern.SashimiXWing -> findFinnedFish(board, candidates, size = 2, pattern = pattern, requireSashimi = true)
+        SudokuSolvingPattern.FinnedSwordfish -> findFinnedFish(board, candidates, size = 3, pattern = pattern)
+        SudokuSolvingPattern.UniqueRectangle -> findUniqueRectangle(board, candidates)
+        else -> null
     }
 
     private fun applyStep(board: IntArray, candidates: Array<MutableSet<Int>>, step: SudokuSolutionStep) {
@@ -85,13 +112,13 @@ class SudokuSolver {
 
     private fun findHiddenSingles(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
         rows().forEach { indexes ->
-            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingleRow)?.let { return it }
+            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingle)?.let { return it }
         }
         columns().forEach { indexes ->
-            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingleColumn)?.let { return it }
+            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingle)?.let { return it }
         }
         boxes().forEach { indexes ->
-            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingleBox)?.let { return it }
+            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingle)?.let { return it }
         }
         return null
     }
@@ -230,13 +257,127 @@ class SudokuSolver {
             val eliminations = box
                 .filter { index -> index !in unit && board[index] == 0 && value in candidates[index] }
                 .map { index -> CandidateElimination(index.row(), index.column(), setOf(value)) }
-            eliminationStep(SudokuSolvingPattern.BoxLineReduction, positions, eliminations)?.let { return it }
+            eliminationStep(SudokuSolvingPattern.ClaimingBoxLineReduction, positions, eliminations)?.let { return it }
         }
         return null
     }
 
-    private fun pointingPattern(size: Int): SudokuSolvingPattern =
-        if (size == 2) SudokuSolvingPattern.PointingPair else SudokuSolvingPattern.PointingTriple
+    private fun findFish(
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        size: Int,
+        pattern: SudokuSolvingPattern,
+    ): SudokuSolutionStep? {
+        findFishByBaseUnits(rows(), columns(), board, candidates, size, pattern)?.let { return it }
+        return findFishByBaseUnits(columns(), rows(), board, candidates, size, pattern)
+    }
+
+    private fun findFishByBaseUnits(
+        baseUnits: List<List<Int>>,
+        coverUnits: List<List<Int>>,
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        size: Int,
+        pattern: SudokuSolvingPattern,
+    ): SudokuSolutionStep? {
+        for (value in 1..9) {
+            val baseOptions = baseUnits
+                .mapIndexed { unitIndex, indexes ->
+                    unitIndex to indexes.filter { index -> board[index] == 0 && value in candidates[index] }
+                }
+                .filter { (_, positions) -> positions.size in 2..size }
+
+            for (subset in baseOptions.combinations(size)) {
+                val coverIndexes = subset
+                    .flatMap { (_, positions) -> positions.map { index -> coverUnits.indexOfFirst { index in it } } }
+                    .distinct()
+                if (coverIndexes.size != size) continue
+
+                val fishCells = subset.flatMap { (_, positions) -> positions }.distinct()
+                val eliminations = coverIndexes
+                    .flatMap { coverUnits[it] }
+                    .filter { index -> index !in fishCells && board[index] == 0 && value in candidates[index] }
+                    .map { index -> CandidateElimination(index.row(), index.column(), setOf(value)) }
+                eliminationStep(pattern, fishCells, eliminations)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun findFinnedFish(
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        size: Int,
+        pattern: SudokuSolvingPattern,
+        requireSashimi: Boolean = false,
+    ): SudokuSolutionStep? {
+        findFinnedFishByBaseUnits(rows(), columns(), board, candidates, size, pattern, requireSashimi)?.let { return it }
+        return findFinnedFishByBaseUnits(columns(), rows(), board, candidates, size, pattern, requireSashimi)
+    }
+
+    private fun findFinnedFishByBaseUnits(
+        baseUnits: List<List<Int>>,
+        coverUnits: List<List<Int>>,
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        size: Int,
+        pattern: SudokuSolvingPattern,
+        requireSashimi: Boolean,
+    ): SudokuSolutionStep? {
+        for (value in 1..9) {
+            val baseOptions = baseUnits
+                .mapIndexed { unitIndex, indexes ->
+                    unitIndex to indexes.filter { index -> board[index] == 0 && value in candidates[index] }
+                }
+                .filter { (_, positions) -> positions.size in 2..(size + 1) }
+
+            for (subset in baseOptions.combinations(size)) {
+                val coverCounts = subset
+                    .flatMap { (_, positions) -> positions.map { index -> coverUnits.indexOfFirst { index in it } } }
+                    .groupingBy { it }
+                    .eachCount()
+                val coverIndexes = coverCounts.filterValues { it >= 1 }.keys.toList()
+                if (coverIndexes.size != size + 1) continue
+
+                val fishCoverIndexes = coverCounts.filterValues { it >= 2 }.keys
+                if (fishCoverIndexes.size != size) continue
+
+                val fishCells = subset.flatMap { (_, positions) -> positions }.distinct()
+                val fins = fishCells.filter { index -> coverUnits.indexOfFirst { index in it } !in fishCoverIndexes }
+                if (fins.isEmpty()) continue
+                if (requireSashimi && subset.none { (_, positions) -> positions.count { it !in fins } == 1 }) continue
+
+                val finPeerIndexes = fins.map { peerIndexes(it) }.reduce { acc, peers -> acc.intersect(peers) }
+                val eliminations = fishCoverIndexes
+                    .flatMap { coverUnits[it] }
+                    .filter { index -> index !in fishCells && index in finPeerIndexes && board[index] == 0 && value in candidates[index] }
+                    .map { index -> CandidateElimination(index.row(), index.column(), setOf(value)) }
+                eliminationStep(pattern, fishCells, eliminations)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun findUniqueRectangle(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
+        for (rowPair in (0 until SudokuGrid.Size).toList().combinations(2)) {
+            for (columnPair in (0 until SudokuGrid.Size).toList().combinations(2)) {
+                val indexes = rowPair.flatMap { row -> columnPair.map { column -> row * SudokuGrid.Size + column } }
+                if (indexes.any { board[it] != 0 }) continue
+
+                val pairs = indexes.filter { candidates[it].size == 2 }
+                if (pairs.size != 3) continue
+                val pairValues = pairs.map { candidates[it] }.distinct().singleOrNull() ?: continue
+                val extraIndex = indexes.first { it !in pairs }
+                if (!candidates[extraIndex].containsAll(pairValues) || candidates[extraIndex].size <= 2) continue
+
+                val eliminations = listOf(CandidateElimination(extraIndex.row(), extraIndex.column(), pairValues))
+                eliminationStep(SudokuSolvingPattern.UniqueRectangle, indexes, eliminations)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun pointingPattern(size: Int): SudokuSolvingPattern = SudokuSolvingPattern.LockedCandidatesPointing
 
     private fun placementStep(
         index: Int,
@@ -404,4 +545,52 @@ class SudokuSolver {
     private fun Int.column(): Int = this % SudokuGrid.Size
 
     private fun Int.toCellPosition() = CellPosition(row = row(), column = column())
+
+    private companion object {
+        val StrategyOrder = listOf(
+            SudokuSolvingPattern.NakedSingle,
+            SudokuSolvingPattern.HiddenSingle,
+            SudokuSolvingPattern.LockedCandidatesPointing,
+            SudokuSolvingPattern.ClaimingBoxLineReduction,
+            SudokuSolvingPattern.NakedPair,
+            SudokuSolvingPattern.NakedTriple,
+            SudokuSolvingPattern.NakedQuad,
+            SudokuSolvingPattern.HiddenPair,
+            SudokuSolvingPattern.HiddenTriple,
+            SudokuSolvingPattern.HiddenQuad,
+            SudokuSolvingPattern.XWing,
+            SudokuSolvingPattern.Swordfish,
+            SudokuSolvingPattern.Jellyfish,
+            SudokuSolvingPattern.XYWing,
+            SudokuSolvingPattern.XYZWing,
+            SudokuSolvingPattern.WWing,
+            SudokuSolvingPattern.Skyscraper,
+            SudokuSolvingPattern.TwoStringKite,
+            SudokuSolvingPattern.EmptyRectangle,
+            SudokuSolvingPattern.UniqueRectangle,
+            SudokuSolvingPattern.SimpleColoring,
+            SudokuSolvingPattern.MultiColoring,
+            SudokuSolvingPattern.XChain,
+            SudokuSolvingPattern.XYChain,
+            SudokuSolvingPattern.AlternatingInferenceChain,
+            SudokuSolvingPattern.ForcingChain,
+            SudokuSolvingPattern.NiceLoop,
+            SudokuSolvingPattern.ContinuousLoop,
+            SudokuSolvingPattern.DiscontinuousLoop,
+            SudokuSolvingPattern.GroupedAic,
+            SudokuSolvingPattern.AlmostLockedSet,
+            SudokuSolvingPattern.AlsXz,
+            SudokuSolvingPattern.AlsXyWing,
+            SudokuSolvingPattern.DeathBlossom,
+            SudokuSolvingPattern.FinnedXWing,
+            SudokuSolvingPattern.SashimiXWing,
+            SudokuSolvingPattern.FinnedSwordfish,
+            SudokuSolvingPattern.KrakenFish,
+            SudokuSolvingPattern.SueDeCoq,
+            SudokuSolvingPattern.Exocet,
+            SudokuSolvingPattern.ThreeDMedusa,
+            SudokuSolvingPattern.BowmansBingo,
+            SudokuSolvingPattern.Nishio,
+        )
+    }
 }
