@@ -1,0 +1,78 @@
+package pet.project.sudokusolver.domain
+
+internal object SudokuStrategyRegistry {
+    val patternOrder = listOf(
+        SudokuSolvingPattern.NakedSingle,
+        SudokuSolvingPattern.HiddenSingle,
+        SudokuSolvingPattern.LockedCandidatesPointing,
+        SudokuSolvingPattern.ClaimingBoxLineReduction,
+        SudokuSolvingPattern.NakedPair,
+        SudokuSolvingPattern.NakedTriple,
+        SudokuSolvingPattern.NakedQuad,
+        SudokuSolvingPattern.HiddenPair,
+        SudokuSolvingPattern.HiddenTriple,
+        SudokuSolvingPattern.HiddenQuad,
+        SudokuSolvingPattern.XWing,
+        SudokuSolvingPattern.Swordfish,
+        SudokuSolvingPattern.Jellyfish,
+        SudokuSolvingPattern.XYWing,
+        SudokuSolvingPattern.XYZWing,
+        SudokuSolvingPattern.WWing,
+        SudokuSolvingPattern.Skyscraper,
+        SudokuSolvingPattern.TwoStringKite,
+        SudokuSolvingPattern.EmptyRectangle,
+        SudokuSolvingPattern.UniqueRectangle,
+        SudokuSolvingPattern.SimpleColoring,
+        SudokuSolvingPattern.MultiColoring,
+        SudokuSolvingPattern.XChain,
+        SudokuSolvingPattern.XYChain,
+        SudokuSolvingPattern.AlternatingInferenceChain,
+        SudokuSolvingPattern.ForcingChain,
+        SudokuSolvingPattern.NiceLoop,
+        SudokuSolvingPattern.ContinuousLoop,
+        SudokuSolvingPattern.DiscontinuousLoop,
+        SudokuSolvingPattern.GroupedAic,
+        SudokuSolvingPattern.AlmostLockedSet,
+        SudokuSolvingPattern.AlsXz,
+        SudokuSolvingPattern.AlsXyWing,
+        SudokuSolvingPattern.DeathBlossom,
+        SudokuSolvingPattern.FinnedXWing,
+        SudokuSolvingPattern.SashimiXWing,
+        SudokuSolvingPattern.FinnedSwordfish,
+        SudokuSolvingPattern.KrakenFish,
+        SudokuSolvingPattern.SueDeCoq,
+        SudokuSolvingPattern.Exocet,
+        SudokuSolvingPattern.ThreeDMedusa,
+        SudokuSolvingPattern.BowmansBingo,
+        SudokuSolvingPattern.Nishio,
+    )
+
+    private val strategiesByPattern: Map<SudokuSolvingPattern, SudokuStrategy> = listOf(
+        NakedSingleStrategy,
+        HiddenSingleStrategy,
+        LockedCandidatesPointingStrategy,
+        ClaimingBoxLineReductionStrategy,
+        NakedSubsetStrategy(size = 2, pattern = SudokuSolvingPattern.NakedPair),
+        NakedSubsetStrategy(size = 3, pattern = SudokuSolvingPattern.NakedTriple),
+        NakedSubsetStrategy(size = 4, pattern = SudokuSolvingPattern.NakedQuad),
+        HiddenSubsetStrategy(size = 2, pattern = SudokuSolvingPattern.HiddenPair),
+        HiddenSubsetStrategy(size = 3, pattern = SudokuSolvingPattern.HiddenTriple),
+        HiddenSubsetStrategy(size = 4, pattern = SudokuSolvingPattern.HiddenQuad),
+        FishStrategy(size = 2, pattern = SudokuSolvingPattern.XWing),
+        FishStrategy(size = 3, pattern = SudokuSolvingPattern.Swordfish),
+        FishStrategy(size = 4, pattern = SudokuSolvingPattern.Jellyfish),
+        UniqueRectangleStrategy,
+        FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.FinnedXWing),
+        FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.SashimiXWing, requireSashimi = true),
+        FinnedFishStrategy(size = 3, pattern = SudokuSolvingPattern.FinnedSwordfish),
+    ).associateBy { it.pattern }
+
+    fun strategyFor(pattern: SudokuSolvingPattern): SudokuStrategy? = strategiesByPattern[pattern]
+
+    fun findNextStep(state: SudokuBoardState): SudokuSolutionStep? {
+        for (pattern in patternOrder) {
+            strategyFor(pattern)?.findStep(state)?.let { return it }
+        }
+        return null
+    }
+}
