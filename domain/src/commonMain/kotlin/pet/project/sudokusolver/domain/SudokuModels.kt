@@ -31,12 +31,17 @@ data class SudokuGrid(
     fun setValue(row: Int, column: Int, value: Int?, isGiven: Boolean = false): SudokuGrid {
         require(value == null || value in 1..9) { "Sudoku cell value must be 1..9." }
         val index = row * Size + column
+        val affectedPeerIndexes: Set<Int> = if (value == null) emptySet() else peerIndexes(row, column)
         return copy(
             cells = cells.mapIndexed { currentIndex, cell ->
-                if (currentIndex == index) {
-                    cell.copy(value = value, notes = if (value == null) cell.notes else emptySet(), isGiven = isGiven)
-                } else {
-                    cell
+                when {
+                    currentIndex == index -> {
+                        cell.copy(value = value, notes = if (value == null) cell.notes else emptySet(), isGiven = isGiven)
+                    }
+                    currentIndex in affectedPeerIndexes -> {
+                        cell.copy(notes = cell.notes - requireNotNull(value))
+                    }
+                    else -> cell
                 }
             },
         )
@@ -111,6 +116,26 @@ data class SudokuGrid(
         }
 
         return null
+    }
+
+    private fun peerIndexes(row: Int, column: Int): Set<Int> {
+        val indexes = mutableSetOf<Int>()
+
+        for (i in 0 until Size) {
+            indexes += row * Size + i
+            indexes += i * Size + column
+        }
+
+        val boxRow = (row / 3) * 3
+        val boxColumn = (column / 3) * 3
+        for (currentRow in boxRow until boxRow + 3) {
+            for (currentColumn in boxColumn until boxColumn + 3) {
+                indexes += currentRow * Size + currentColumn
+            }
+        }
+
+        indexes -= row * Size + column
+        return indexes
     }
 
     fun hasAnyValue(): Boolean = cells.any { it.value != null }

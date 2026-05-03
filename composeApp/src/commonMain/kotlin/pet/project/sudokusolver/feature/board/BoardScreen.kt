@@ -44,6 +44,7 @@ import pet.project.sudokusolver.domain.SolutionMode
 import pet.project.sudokusolver.domain.SudokuCell
 import pet.project.sudokusolver.domain.SudokuConflict
 import pet.project.sudokusolver.domain.SudokuGrid
+import pet.project.sudokusolver.domain.SudokuSolutionStep
 import pet.project.sudokusolver.domain.SudokuSolvingPattern
 import sudokusolver.composeapp.generated.resources.Res
 import sudokusolver.composeapp.generated.resources.*
@@ -78,6 +79,7 @@ fun BoardScreen(
                 grid = state.grid,
                 selectedCell = state.selectedCell,
                 highlightedValue = state.highlightedValue,
+                patternStep = (state.status as? BoardStatus.StepApplied)?.step,
                 onCellSelected = { onIntent(BoardIntent.CellSelected(it)) },
             )
 
@@ -261,11 +263,14 @@ private fun SudokuBoard(
     grid: SudokuGrid,
     selectedCell: CellPosition?,
     highlightedValue: Int?,
+    patternStep: SudokuSolutionStep?,
     onCellSelected: (CellPosition) -> Unit,
 ) {
     val thickLine = MaterialTheme.colorScheme.onSurface
     val thinLine = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
     val labelWeight = 0.55f
+    val patternTarget = patternStep?.let { CellPosition(it.row, it.column) }
+    val patternRelatedCells = patternStep?.relatedCells.orEmpty().toSet()
 
     Column(
         modifier = Modifier
@@ -339,7 +344,8 @@ private fun SudokuBoard(
                         Row(Modifier.weight(1f)) {
                             for (column in 0 until SudokuGrid.Size) {
                                 val cell = grid.cellAt(row, column)
-                                val isSelected = selectedCell?.row == row && selectedCell.column == column
+                                val position = CellPosition(row, column)
+                                val isSelected = selectedCell == position
                                 val isHighlighted = selectedCell == null &&
                                     highlightedValue != null &&
                                     (cell.value == highlightedValue || highlightedValue in cell.notes)
@@ -350,7 +356,9 @@ private fun SudokuBoard(
                                     cell = cell,
                                     isSelected = isSelected,
                                     isHighlighted = isHighlighted,
-                                    onClick = { onCellSelected(CellPosition(row, column)) },
+                                    isPatternTarget = patternTarget == position,
+                                    isPatternRelated = position in patternRelatedCells,
+                                    onClick = { onCellSelected(position) },
                                 )
                             }
                         }
@@ -367,10 +375,14 @@ private fun SudokuCellView(
     cell: SudokuCell,
     isSelected: Boolean,
     isHighlighted: Boolean,
+    isPatternTarget: Boolean,
+    isPatternRelated: Boolean,
     onClick: () -> Unit,
 ) {
     val background = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
+        isPatternTarget -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.78f)
+        isPatternRelated -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.42f)
         isHighlighted -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f)
         cell.isGiven -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
         else -> Color.Transparent

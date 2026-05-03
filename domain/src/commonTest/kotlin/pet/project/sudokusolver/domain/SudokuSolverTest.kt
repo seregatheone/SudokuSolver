@@ -77,6 +77,23 @@ class SudokuSolverTest {
         assertEquals(emptySet(), withNotes.cellAt(row = 0, column = 0).notes)
     }
 
+    @Test
+    fun removesSolvedValueFromPeerNotes() {
+        val grid = SudokuGrid.Empty
+            .toggleNote(row = 0, column = 1, value = 7)
+            .toggleNote(row = 4, column = 0, value = 7)
+            .toggleNote(row = 1, column = 1, value = 7)
+            .toggleNote(row = 4, column = 4, value = 7)
+
+        val updated = grid.setValue(row = 0, column = 0, value = 7)
+
+        assertEquals(emptySet(), updated.cellAt(row = 0, column = 0).notes)
+        assertEquals(emptySet(), updated.cellAt(row = 0, column = 1).notes)
+        assertEquals(emptySet(), updated.cellAt(row = 4, column = 0).notes)
+        assertEquals(emptySet(), updated.cellAt(row = 1, column = 1).notes)
+        assertEquals(setOf(7), updated.cellAt(row = 4, column = 4).notes)
+    }
+
     private fun classicPuzzle() = SudokuGrid.fromRows(
         listOf(
             listOf(5, 3, null, null, 7, null, null, null, null),
