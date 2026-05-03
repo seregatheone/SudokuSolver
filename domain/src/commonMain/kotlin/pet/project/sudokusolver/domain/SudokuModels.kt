@@ -2,6 +2,7 @@ package pet.project.sudokusolver.domain
 
 data class SudokuCell(
     val value: Int? = null,
+    val notes: Set<Int> = emptySet(),
     val isGiven: Boolean = false,
 )
 
@@ -19,6 +20,7 @@ data class SudokuGrid(
         require(cells.size == CellCount) { "Sudoku grid must contain exactly $CellCount cells." }
         cells.forEach { cell ->
             require(cell.value == null || cell.value in 1..9) { "Sudoku cell value must be 1..9." }
+            require(cell.notes.all { it in 1..9 }) { "Sudoku notes must be 1..9." }
         }
     }
 
@@ -31,10 +33,50 @@ data class SudokuGrid(
         val index = row * Size + column
         return copy(
             cells = cells.mapIndexed { currentIndex, cell ->
-                if (currentIndex == index) cell.copy(value = value, isGiven = isGiven) else cell
+                if (currentIndex == index) {
+                    cell.copy(value = value, notes = if (value == null) cell.notes else emptySet(), isGiven = isGiven)
+                } else {
+                    cell
+                }
             },
         )
     }
+
+    fun toggleNote(row: Int, column: Int, value: Int): SudokuGrid {
+        require(value in 1..9) { "Sudoku note value must be 1..9." }
+        val index = row * Size + column
+        return copy(
+            cells = cells.mapIndexed { currentIndex, cell ->
+                if (currentIndex == index && cell.value == null) {
+                    val notes = if (value in cell.notes) cell.notes - value else cell.notes + value
+                    cell.copy(notes = notes)
+                } else {
+                    cell
+                }
+            },
+        )
+    }
+
+    fun clearCell(row: Int, column: Int): SudokuGrid {
+        val index = row * Size + column
+        return copy(
+            cells = cells.mapIndexed { currentIndex, cell ->
+                if (currentIndex == index) cell.copy(value = null, notes = emptySet()) else cell
+            },
+        )
+    }
+
+    fun withCandidateNotes(): SudokuGrid = copy(
+        cells = cells.mapIndexed { index, cell ->
+            if (cell.value == null) {
+                val row = index / Size
+                val column = index % Size
+                cell.copy(notes = allowedValuesAt(row, column))
+            } else {
+                cell.copy(notes = emptySet())
+            }
+        },
+    )
 
     fun canSetValue(row: Int, column: Int, value: Int): Boolean {
         require(value in 1..9) { "Sudoku cell value must be 1..9." }
@@ -106,10 +148,20 @@ enum class SolutionMode {
     SelfPractice,
 }
 
+enum class SudokuSolvingPattern {
+    NakedSingle,
+    HiddenSingleRow,
+    HiddenSingleColumn,
+    HiddenSingleBox,
+    CalculatedCandidate,
+}
+
 data class SudokuSolutionStep(
     val row: Int,
     val column: Int,
     val value: Int,
+    val pattern: SudokuSolvingPattern,
+    val relatedCells: List<CellPosition> = emptyList(),
 )
 
 data class SudokuSolveResult(

@@ -17,16 +17,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,8 +41,10 @@ import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.stringResource
 import pet.project.sudokusolver.domain.CellPosition
 import pet.project.sudokusolver.domain.SolutionMode
+import pet.project.sudokusolver.domain.SudokuCell
 import pet.project.sudokusolver.domain.SudokuConflict
 import pet.project.sudokusolver.domain.SudokuGrid
+import pet.project.sudokusolver.domain.SudokuSolvingPattern
 import sudokusolver.composeapp.generated.resources.Res
 import sudokusolver.composeapp.generated.resources.*
 
@@ -61,47 +64,24 @@ fun BoardScreen(
             modifier = Modifier
                 .safeContentPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(18.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 620.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onBack) {
-                    Text(stringResource(Res.string.board_back))
-                }
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = stringResource(Res.string.board_title),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                TextButton(onClick = { onIntent(BoardIntent.ClearClicked) }) {
-                    Text(stringResource(Res.string.board_clear))
-                }
-            }
+            BoardToolbar(
+                onBack = onBack,
+                onClear = { onIntent(BoardIntent.ClearClicked) },
+            )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
 
             SudokuBoard(
                 grid = state.grid,
                 selectedCell = state.selectedCell,
+                highlightedValue = state.highlightedValue,
                 onCellSelected = { onIntent(BoardIntent.CellSelected(it)) },
             )
 
-            Spacer(Modifier.height(16.dp))
-
-            NumberPad(
-                enabled = state.selectedCell != null,
-                allowedValues = state.allowedValues,
-                onValueSelected = { onIntent(BoardIntent.ValueSelected(it)) },
-            )
-
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(10.dp))
 
             ModeChooser(
                 enabled = state.grid.hasAnyValue(),
@@ -109,36 +89,116 @@ fun BoardScreen(
                 onModeSelected = { onIntent(BoardIntent.SolutionModeSelected(it)) },
             )
 
+            Spacer(Modifier.height(10.dp))
+
+            NumberPad(
+                hasSelectedCell = state.selectedCell != null,
+                allowedValues = state.allowedValues,
+                onValueSelected = { onIntent(BoardIntent.ValueSelected(it)) },
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            InputTools(
+                enabled = state.selectedCell != null,
+                isPencilMode = state.isPencilMode,
+                onPencilModeToggle = { onIntent(BoardIntent.PencilModeToggled) },
+                onDelete = { onIntent(BoardIntent.ValueSelected(null)) },
+            )
+
             if (state.selectedMode == SolutionMode.StepByStep && state.steps.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    enabled = state.nextStepIndex < state.steps.size,
-                    onClick = { onIntent(BoardIntent.NextStepClicked) },
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.widthIn(max = 420.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text(
-                        if (state.nextStepIndex < state.steps.size) {
-                            stringResource(Res.string.board_next_step)
-                        } else {
-                            stringResource(Res.string.board_all_steps_done)
-                        },
-                    )
+                    OutlinedButton(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp),
+                        enabled = state.nextStepIndex > 0,
+                        onClick = { onIntent(BoardIntent.PreviousStepClicked) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    ) {
+                        Text(stringResource(Res.string.board_previous_step), fontSize = 12.sp)
+                    }
+                    Button(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp),
+                        enabled = state.nextStepIndex < state.steps.size,
+                        onClick = { onIntent(BoardIntent.NextStepClicked) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    ) {
+                        Text(
+                            if (state.nextStepIndex < state.steps.size) {
+                                stringResource(Res.string.board_next_step)
+                            } else {
+                                stringResource(Res.string.board_all_steps_done)
+                            },
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
 
             if (state.selectedMode == SolutionMode.SelfPractice) {
-                Spacer(Modifier.height(12.dp))
-                OutlinedButton(onClick = { onIntent(BoardIntent.HintClicked) }) {
-                    Text(stringResource(Res.string.board_hint))
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { onIntent(BoardIntent.HintClicked) },
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    Text(stringResource(Res.string.board_hint), fontSize = 13.sp)
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
-                modifier = Modifier.widthIn(max = 620.dp),
+                modifier = Modifier.widthIn(max = 640.dp),
                 text = statusText(state.status),
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoardToolbar(
+    onBack: () -> Unit,
+    onClear: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 680.dp)
+            .height(38.dp),
+    ) {
+        IconButton(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(38.dp),
+            onClick = onBack,
+        ) {
+            Text(
+                text = stringResource(Res.string.board_back_symbol),
+                fontSize = 28.sp,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        OutlinedButton(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .height(32.dp),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            onClick = onClear,
+        ) {
+            Text(
+                text = stringResource(Res.string.board_clear),
+                fontSize = 12.sp,
             )
         }
     }
@@ -149,6 +209,8 @@ private fun statusText(status: BoardStatus): String = when (status) {
     BoardStatus.Initial -> stringResource(Res.string.board_status_initial)
     BoardStatus.GridCleared -> stringResource(Res.string.board_status_cleared)
     BoardStatus.DigitRemoved -> stringResource(Res.string.board_status_digit_removed)
+    BoardStatus.NotesCleared -> stringResource(Res.string.board_status_notes_cleared)
+    is BoardStatus.NoteToggled -> stringResource(Res.string.board_status_note_toggled, status.value)
     is BoardStatus.DigitEntered -> stringResource(Res.string.board_status_digit_entered, status.value)
     BoardStatus.SolveFailed -> stringResource(Res.string.board_status_solve_failed)
     BoardStatus.FastSolved -> stringResource(Res.string.board_status_fast_solved)
@@ -158,11 +220,33 @@ private fun statusText(status: BoardStatus): String = when (status) {
     BoardStatus.HintUnavailable -> stringResource(Res.string.board_status_hint_unavailable)
     is BoardStatus.StepApplied -> stringResource(
         Res.string.board_status_step,
-        status.step.row + 1,
-        status.step.column + 1,
+        coordinateText(status.step.row, status.step.column),
         status.step.value,
+        patternText(status.step.pattern),
+        relatedCellsText(status.step.relatedCells),
     )
     is BoardStatus.Conflict -> conflictText(status.conflict, status.value)
+}
+
+@Composable
+private fun relatedCellsText(cells: List<CellPosition>): String {
+    if (cells.isEmpty()) return stringResource(Res.string.board_status_step_no_related_cells)
+    return cells
+        .take(6)
+        .joinToString { cell -> coordinateText(cell.row, cell.column) }
+}
+
+private fun coordinateText(row: Int, column: Int): String = "${columnLabel(column)}${row + 1}"
+
+private fun columnLabel(column: Int): Char = ('A'.code + column).toChar()
+
+@Composable
+private fun patternText(pattern: SudokuSolvingPattern): String = when (pattern) {
+    SudokuSolvingPattern.NakedSingle -> stringResource(Res.string.pattern_naked_single)
+    SudokuSolvingPattern.HiddenSingleRow -> stringResource(Res.string.pattern_hidden_single_row)
+    SudokuSolvingPattern.HiddenSingleColumn -> stringResource(Res.string.pattern_hidden_single_column)
+    SudokuSolvingPattern.HiddenSingleBox -> stringResource(Res.string.pattern_hidden_single_box)
+    SudokuSolvingPattern.CalculatedCandidate -> stringResource(Res.string.pattern_calculated_candidate)
 }
 
 @Composable
@@ -176,44 +260,100 @@ private fun conflictText(conflict: SudokuConflict, value: Int): String = when (c
 private fun SudokuBoard(
     grid: SudokuGrid,
     selectedCell: CellPosition?,
+    highlightedValue: Int?,
     onCellSelected: (CellPosition) -> Unit,
 ) {
     val thickLine = MaterialTheme.colorScheme.onSurface
     val thinLine = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
+    val labelWeight = 0.55f
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 520.dp)
-            .aspectRatio(1f)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(BorderStroke(2.dp, thickLine))
-            .drawBehind {
-                val cell = size.width / SudokuGrid.Size
-                for (index in 1 until SudokuGrid.Size) {
-                    val stroke = if (index % 3 == 0) 3.dp.toPx() else 1.dp.toPx()
-                    val color = if (index % 3 == 0) thickLine else thinLine
-                    val position = cell * index
-                    drawLine(color, Offset(position, 0f), Offset(position, size.height), stroke)
-                    drawLine(color, Offset(0f, position), Offset(size.width, position), stroke)
-                }
-            },
+            .widthIn(max = 680.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Column(Modifier.fillMaxSize()) {
-            for (row in 0 until SudokuGrid.Size) {
-                Row(Modifier.weight(1f)) {
-                    for (column in 0 until SudokuGrid.Size) {
-                        val cell = grid.cellAt(row, column)
-                        val isSelected = selectedCell?.row == row && selectedCell.column == column
-                        SudokuCellView(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            value = cell.value,
-                            isGiven = cell.isGiven,
-                            isSelected = isSelected,
-                            onClick = { onCellSelected(CellPosition(row, column)) },
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(Modifier.weight(labelWeight))
+            Row(Modifier.weight(9f)) {
+                for (column in 0 until SudokuGrid.Size) {
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = columnLabel(column).toString(),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(labelWeight)
+                    .aspectRatio(labelWeight / 9f),
+                verticalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                for (row in 0 until SudokuGrid.Size) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = (row + 1).toString(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
                         )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(9f)
+                    .aspectRatio(1f)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(BorderStroke(2.dp, thickLine))
+                    .drawBehind {
+                        val cell = size.width / SudokuGrid.Size
+                        for (index in 1 until SudokuGrid.Size) {
+                            val stroke = if (index % 3 == 0) 3.dp.toPx() else 1.dp.toPx()
+                            val color = if (index % 3 == 0) thickLine else thinLine
+                            val position = cell * index
+                            drawLine(color, Offset(position, 0f), Offset(position, size.height), stroke)
+                            drawLine(color, Offset(0f, position), Offset(size.width, position), stroke)
+                        }
+                    },
+            ) {
+                Column(Modifier.fillMaxSize()) {
+                    for (row in 0 until SudokuGrid.Size) {
+                        Row(Modifier.weight(1f)) {
+                            for (column in 0 until SudokuGrid.Size) {
+                                val cell = grid.cellAt(row, column)
+                                val isSelected = selectedCell?.row == row && selectedCell.column == column
+                                val isHighlighted = selectedCell == null &&
+                                    highlightedValue != null &&
+                                    (cell.value == highlightedValue || highlightedValue in cell.notes)
+                                SudokuCellView(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight(),
+                                    cell = cell,
+                                    isSelected = isSelected,
+                                    isHighlighted = isHighlighted,
+                                    onClick = { onCellSelected(CellPosition(row, column)) },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -224,17 +364,18 @@ private fun SudokuBoard(
 @Composable
 private fun SudokuCellView(
     modifier: Modifier,
-    value: Int?,
-    isGiven: Boolean,
+    cell: SudokuCell,
     isSelected: Boolean,
+    isHighlighted: Boolean,
     onClick: () -> Unit,
 ) {
     val background = when {
         isSelected -> MaterialTheme.colorScheme.primaryContainer
-        isGiven -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+        isHighlighted -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f)
+        cell.isGiven -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
         else -> Color.Transparent
     }
-    val textColor = if (isGiven) {
+    val textColor = if (cell.isGiven) {
         MaterialTheme.colorScheme.onSurface
     } else {
         MaterialTheme.colorScheme.primary
@@ -246,55 +387,121 @@ private fun SudokuCellView(
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = value?.toString().orEmpty(),
-            color = textColor,
-            fontSize = 24.sp,
-            fontWeight = if (isGiven) FontWeight.SemiBold else FontWeight.Medium,
-            textAlign = TextAlign.Center,
-        )
+        if (cell.value != null) {
+            Text(
+                text = cell.value.toString(),
+                color = textColor,
+                fontSize = 20.sp,
+                fontWeight = if (cell.isGiven) FontWeight.SemiBold else FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            )
+        } else if (cell.notes.isNotEmpty()) {
+            NotesGrid(notes = cell.notes)
+        }
+    }
+}
+
+@Composable
+private fun NotesGrid(notes: Set<Int>) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(3.dp),
+        verticalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        (1..9).chunked(3).forEach { rowValues ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                rowValues.forEach { value ->
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = if (value in notes) value.toString() else "",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 8.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 8.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InputTools(
+    enabled: Boolean,
+    isPencilMode: Boolean,
+    onPencilModeToggle: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.widthIn(max = 420.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .height(30.dp)
+                .clickable(enabled = enabled, onClick = onPencilModeToggle),
+            shape = RoundedCornerShape(8.dp),
+            color = if (isPencilMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = stringResource(Res.string.board_pencil_symbol),
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+                    fontSize = 17.sp,
+                    fontWeight = if (isPencilMode) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
+        }
+
+        OutlinedButton(
+            modifier = Modifier
+                .weight(2f)
+                .height(30.dp),
+            enabled = enabled,
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(0.dp),
+            onClick = onDelete,
+        ) {
+            Text(stringResource(Res.string.board_delete_digit), fontSize = 11.sp)
+        }
     }
 }
 
 @Composable
 private fun NumberPad(
-    enabled: Boolean,
+    hasSelectedCell: Boolean,
     allowedValues: Set<Int>,
     onValueSelected: (Int?) -> Unit,
 ) {
     Column(
-        modifier = Modifier.widthIn(max = 520.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.widthIn(max = 420.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         (1..9).chunked(3).forEach { rowValues ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 rowValues.forEach { value ->
                     OutlinedButton(
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp),
-                        enabled = enabled && value in allowedValues,
+                            .height(36.dp),
+                        enabled = !hasSelectedCell || value in allowedValues,
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(0.dp),
                         onClick = { onValueSelected(value) },
                     ) {
-                        Text(value.toString(), fontSize = 18.sp)
+                        Text(value.toString(), fontSize = 14.sp)
                     }
                 }
             }
-        }
-        OutlinedButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(46.dp),
-            enabled = enabled,
-            shape = RoundedCornerShape(8.dp),
-            onClick = { onValueSelected(null) },
-        ) {
-            Text(stringResource(Res.string.board_delete_digit))
         }
     }
 }
@@ -306,15 +513,16 @@ private fun ModeChooser(
     onModeSelected: (SolutionMode) -> Unit,
 ) {
     Column(
-        modifier = Modifier.widthIn(max = 620.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.widthIn(max = 640.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             text = stringResource(Res.string.board_solution_mode),
             fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ModeButton(
                 modifier = Modifier.weight(1f),
                 text = stringResource(Res.string.solution_mode_fast),
@@ -351,7 +559,7 @@ private fun ModeButton(
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Surface(
         modifier = modifier
-            .height(52.dp)
+            .height(40.dp)
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = container,
@@ -359,10 +567,11 @@ private fun ModeButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
-                modifier = Modifier.padding(horizontal = 6.dp),
+                modifier = Modifier.padding(horizontal = 4.dp),
                 text = text,
                 textAlign = TextAlign.Center,
                 color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+                fontSize = 12.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             )
         }

@@ -7,14 +7,15 @@
     <string name="photo_error_unavailable">Выбор фотографии пока не подключен для этой платформы.</string>
     <string name="photo_error_recognition_failed">Не удалось распознать судоку на фотографии.</string>
 
-    <string name="board_title">Сетка судоку</string>
-    <string name="board_back">Назад</string>
+    <string name="board_back_symbol">‹</string>
     <string name="board_clear">Очистить</string>
-    <string name="board_delete_digit">Удалить цифру</string>
+    <string name="board_delete_digit">Удалить</string>
+    <string name="board_pencil_symbol">✎</string>
     <string name="board_solution_mode">Режим решения</string>
     <string name="solution_mode_fast">Быстро</string>
     <string name="solution_mode_step_by_step">По шагам</string>
     <string name="solution_mode_self_practice">Сам</string>
+    <string name="board_previous_step">Предыдущий шаг</string>
     <string name="board_next_step">Следующий шаг</string>
     <string name="board_all_steps_done">Все шаги выполнены</string>
     <string name="board_hint">Подсказка</string>
@@ -22,6 +23,8 @@
     <string name="board_status_initial">Заполните известные цифры и выберите режим решения.</string>
     <string name="board_status_cleared">Сетка очищена.</string>
     <string name="board_status_digit_removed">Цифра удалена.</string>
+    <string name="board_status_note_toggled">Заметка %1$d переключена.</string>
+    <string name="board_status_notes_cleared">Заметки очищены.</string>
     <string name="board_status_digit_entered">Цифра %1$d внесена.</string>
     <string name="board_status_solve_failed">Не получилось решить: проверьте конфликтующие цифры.</string>
     <string name="board_status_fast_solved">Готово: быстрое решение внесено в сетку.</string>
@@ -29,7 +32,13 @@
     <string name="board_status_step_by_step_ready">Пошаговый режим: нажимайте «Следующий шаг».</string>
     <string name="board_status_self_practice_ready">Самостоятельный режим: решайте сами, а при необходимости берите подсказку.</string>
     <string name="board_status_hint_unavailable">Подсказка недоступна: проверьте сетку.</string>
-    <string name="board_status_step">Строка %1$d, столбец %2$d: ставим %3$d, потому что это значение не конфликтует со строкой, столбцом и блоком 3x3.</string>
+    <string name="board_status_step">%1$s: ставим %2$d.\nПаттерн: %3$s. Клетки: %4$s.</string>
+    <string name="board_status_step_no_related_cells">нет</string>
+    <string name="pattern_naked_single">единственный кандидат в клетке</string>
+    <string name="pattern_hidden_single_row">скрытая одиночка в строке</string>
+    <string name="pattern_hidden_single_column">скрытая одиночка в столбце</string>
+    <string name="pattern_hidden_single_box">скрытая одиночка в блоке 3x3</string>
+    <string name="pattern_calculated_candidate">расчёт по кандидатам</string>
     <string name="board_conflict_row">Цифра %1$d уже есть в этой строке.</string>
     <string name="board_conflict_column">Цифра %1$d уже есть в этом столбце.</string>
     <string name="board_conflict_box">Цифра %1$d уже есть в блоке 3x3.</string>

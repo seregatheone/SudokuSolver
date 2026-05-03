@@ -55,6 +55,28 @@ class SudokuSolverTest {
         assertTrue(puzzle.canSetValue(row = 0, column = 2, value = 4))
     }
 
+
+    @Test
+    fun togglesCellNotesAndClearsThemWhenValueIsSet() {
+        val withNote = SudokuGrid.Empty.toggleNote(row = 0, column = 0, value = 4)
+        assertEquals(setOf(4), withNote.cellAt(row = 0, column = 0).notes)
+
+        val withoutNote = withNote.toggleNote(row = 0, column = 0, value = 4)
+        assertEquals(emptySet(), withoutNote.cellAt(row = 0, column = 0).notes)
+
+        val solvedCell = withNote.setValue(row = 0, column = 0, value = 4)
+        assertEquals(emptySet(), solvedCell.cellAt(row = 0, column = 0).notes)
+    }
+
+
+    @Test
+    fun fillsCandidateNotesForEmptyCells() {
+        val withNotes = classicPuzzle().withCandidateNotes()
+
+        assertEquals(setOf(1, 2, 4), withNotes.cellAt(row = 0, column = 2).notes)
+        assertEquals(emptySet(), withNotes.cellAt(row = 0, column = 0).notes)
+    }
+
     private fun classicPuzzle() = SudokuGrid.fromRows(
         listOf(
             listOf(5, 3, null, null, 7, null, null, null, null),
