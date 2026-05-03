@@ -1,0 +1,118 @@
+package pet.project.sudokusolver.domain
+
+data class SudokuCell(
+    val value: Int? = null,
+    val isGiven: Boolean = false,
+)
+
+data class CellPosition(
+    val row: Int,
+    val column: Int,
+) {
+    val index: Int = row * SudokuGrid.Size + column
+}
+
+data class SudokuGrid(
+    val cells: List<SudokuCell>,
+) {
+    init {
+        require(cells.size == CellCount) { "Sudoku grid must contain exactly $CellCount cells." }
+        cells.forEach { cell ->
+            require(cell.value == null || cell.value in 1..9) { "Sudoku cell value must be 1..9." }
+        }
+    }
+
+    fun valueAt(row: Int, column: Int): Int? = cells[row * Size + column].value
+
+    fun cellAt(row: Int, column: Int): SudokuCell = cells[row * Size + column]
+
+    fun setValue(row: Int, column: Int, value: Int?, isGiven: Boolean = false): SudokuGrid {
+        require(value == null || value in 1..9) { "Sudoku cell value must be 1..9." }
+        val index = row * Size + column
+        return copy(
+            cells = cells.mapIndexed { currentIndex, cell ->
+                if (currentIndex == index) cell.copy(value = value, isGiven = isGiven) else cell
+            },
+        )
+    }
+
+    fun canSetValue(row: Int, column: Int, value: Int): Boolean {
+        require(value in 1..9) { "Sudoku cell value must be 1..9." }
+        return conflictFor(row, column, value) == null
+    }
+
+    fun allowedValuesAt(row: Int, column: Int): Set<Int> = (1..9)
+        .filter { value -> canSetValue(row, column, value) }
+        .toSet()
+
+    fun conflictFor(row: Int, column: Int, value: Int): SudokuConflict? {
+        require(value in 1..9) { "Sudoku cell value must be 1..9." }
+        val sourceIndex = row * Size + column
+
+        for (currentColumn in 0 until Size) {
+            val index = row * Size + currentColumn
+            if (index != sourceIndex && cells[index].value == value) return SudokuConflict.Row
+        }
+
+        for (currentRow in 0 until Size) {
+            val index = currentRow * Size + column
+            if (index != sourceIndex && cells[index].value == value) return SudokuConflict.Column
+        }
+
+        val boxRow = (row / 3) * 3
+        val boxColumn = (column / 3) * 3
+        for (currentRow in boxRow until boxRow + 3) {
+            for (currentColumn in boxColumn until boxColumn + 3) {
+                val index = currentRow * Size + currentColumn
+                if (index != sourceIndex && cells[index].value == value) return SudokuConflict.Box
+            }
+        }
+
+        return null
+    }
+
+    fun hasAnyValue(): Boolean = cells.any { it.value != null }
+
+    fun values(): List<Int?> = cells.map { it.value }
+
+    companion object {
+        const val Size = 9
+        const val CellCount = Size * Size
+
+        val Empty = SudokuGrid(List(CellCount) { SudokuCell() })
+
+        fun fromRows(rows: List<List<Int?>>, markAsGiven: Boolean = true): SudokuGrid {
+            require(rows.size == Size) { "Sudoku must contain 9 rows." }
+            require(rows.all { it.size == Size }) { "Each sudoku row must contain 9 values." }
+
+            return SudokuGrid(
+                rows.flatten().map { value ->
+                    SudokuCell(value = value, isGiven = markAsGiven && value != null)
+                },
+            )
+        }
+    }
+}
+
+enum class SudokuConflict {
+    Row,
+    Column,
+    Box,
+}
+
+enum class SolutionMode {
+    Fast,
+    StepByStep,
+    SelfPractice,
+}
+
+data class SudokuSolutionStep(
+    val row: Int,
+    val column: Int,
+    val value: Int,
+)
+
+data class SudokuSolveResult(
+    val solvedGrid: SudokuGrid,
+    val steps: List<SudokuSolutionStep>,
+)

@@ -1,49 +1,94 @@
 package pet.project.sudokusolver
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.painterResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import pet.project.sudokusolver.data.recognition.SudokuPhotoPicker
+import pet.project.sudokusolver.data.recognition.UnavailableSudokuPhotoPicker
+import pet.project.sudokusolver.domain.SudokuGrid
+import pet.project.sudokusolver.feature.board.BoardScreen
+import pet.project.sudokusolver.feature.board.BoardViewModel
+import pet.project.sudokusolver.feature.input.InputChoiceEffect
+import pet.project.sudokusolver.feature.input.InputChoiceScreen
+import pet.project.sudokusolver.feature.input.InputChoiceViewModel
 
-import sudokusolver.composeapp.generated.resources.Res
-import sudokusolver.composeapp.generated.resources.compose_multiplatform
+private val SudokuColorScheme = lightColorScheme(
+    primary = Color(0xFF1E6F5C),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFD6F2EA),
+    onPrimaryContainer = Color(0xFF08251F),
+    secondary = Color(0xFF7B4B1F),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFF8DEC5),
+    onSecondaryContainer = Color(0xFF2D1604),
+    background = Color(0xFFF7FAF8),
+    onBackground = Color(0xFF171D1B),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF171D1B),
+    surfaceVariant = Color(0xFFE2E8E5),
+    onSurfaceVariant = Color(0xFF414946),
+    outline = Color(0xFF707976),
+)
+
+private sealed interface AppRoute {
+    data object InputChoice : AppRoute
+    data class Board(val initialGrid: SudokuGrid) : AppRoute
+}
 
 @Composable
 @Preview
-fun App() {
-    MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
+fun App(
+    photoPicker: SudokuPhotoPicker = UnavailableSudokuPhotoPicker,
+) {
+    MaterialTheme(colorScheme = SudokuColorScheme) {
+        val appViewModel = viewModel { AppViewModel() }
+
+        when (val currentRoute = appViewModel.route) {
+            AppRoute.InputChoice -> {
+                val inputChoiceViewModel = viewModel { InputChoiceViewModel(photoPicker) }
+                InputChoiceScreen(
+                    state = inputChoiceViewModel.state,
+                    onIntent = { intent ->
+                        inputChoiceViewModel.onIntent(intent) { effect ->
+                            when (effect) {
+                                is InputChoiceEffect.NavigateToBoard -> appViewModel.openBoard(effect.grid)
+                            }
+                        }
+                    },
+                )
             }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+
+            is AppRoute.Board -> {
+                val boardViewModel = viewModel(
+                    key = "board-${currentRoute.initialGrid.hashCode()}",
                 ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+                    BoardViewModel(currentRoute.initialGrid)
                 }
+                BoardScreen(
+                    state = boardViewModel.state,
+                    onIntent = boardViewModel::onIntent,
+                    onBack = appViewModel::openInputChoice,
+                )
             }
         }
+    }
+}
+
+private class AppViewModel : androidx.lifecycle.ViewModel() {
+    var route by mutableStateOf<AppRoute>(AppRoute.InputChoice)
+        private set
+
+    fun openInputChoice() {
+        route = AppRoute.InputChoice
+    }
+
+    fun openBoard(grid: SudokuGrid) {
+        route = AppRoute.Board(grid)
     }
 }

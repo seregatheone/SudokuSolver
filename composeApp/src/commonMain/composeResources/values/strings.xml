@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_title">Sudoku Solver</string>
+    <string name="input_choice_subtitle">Выберите способ ввода головоломки</string>
+    <string name="input_manual">Ввод руками</string>
+    <string name="input_photo">Фотография</string>
+    <string name="photo_error_unavailable">Выбор фотографии пока не подключен для этой платформы.</string>
+    <string name="photo_error_recognition_failed">Не удалось распознать судоку на фотографии.</string>
+
+    <string name="board_title">Сетка судоку</string>
+    <string name="board_back">Назад</string>
+    <string name="board_clear">Очистить</string>
+    <string name="board_delete_digit">Удалить цифру</string>
+    <string name="board_solution_mode">Режим решения</string>
+    <string name="solution_mode_fast">Быстро</string>
+    <string name="solution_mode_step_by_step">По шагам</string>
+    <string name="solution_mode_self_practice">Сам</string>
+    <string name="board_next_step">Следующий шаг</string>
+    <string name="board_all_steps_done">Все шаги выполнены</string>
+    <string name="board_hint">Подсказка</string>
+
+    <string name="board_status_initial">Заполните известные цифры и выберите режим решения.</string>
+    <string name="board_status_cleared">Сетка очищена.</string>
+    <string name="board_status_digit_removed">Цифра удалена.</string>
+    <string name="board_status_digit_entered">Цифра %1$d внесена.</string>
+    <string name="board_status_solve_failed">Не получилось решить: проверьте конфликтующие цифры.</string>
+    <string name="board_status_fast_solved">Готово: быстрое решение внесено в сетку.</string>
+    <string name="board_status_no_steps">Нет доступных шагов: сетка уже заполнена или содержит конфликт.</string>
+    <string name="board_status_step_by_step_ready">Пошаговый режим: нажимайте «Следующий шаг».</string>
+    <string name="board_status_self_practice_ready">Самостоятельный режим: решайте сами, а при необходимости берите подсказку.</string>
+    <string name="board_status_hint_unavailable">Подсказка недоступна: проверьте сетку.</string>
+    <string name="board_status_step">Строка %1$d, столбец %2$d: ставим %3$d, потому что это значение не конфликтует со строкой, столбцом и блоком 3x3.</string>
+    <string name="board_conflict_row">Цифра %1$d уже есть в этой строке.</string>
+    <string name="board_conflict_column">Цифра %1$d уже есть в этом столбце.</string>
+    <string name="board_conflict_box">Цифра %1$d уже есть в блоке 3x3.</string>
+</resources>
