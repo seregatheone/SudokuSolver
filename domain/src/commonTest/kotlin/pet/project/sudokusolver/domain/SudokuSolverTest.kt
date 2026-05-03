@@ -94,6 +94,18 @@ class SudokuSolverTest {
         assertEquals(setOf(7), updated.cellAt(row = 4, column = 4).notes)
     }
 
+    @Test
+    fun removesNotesFromSingleCell() {
+        val grid = SudokuGrid.Empty
+            .toggleNote(row = 0, column = 0, value = 1)
+            .toggleNote(row = 0, column = 0, value = 2)
+            .toggleNote(row = 0, column = 0, value = 3)
+
+        val updated = grid.removeNotes(row = 0, column = 0, values = setOf(1, 3))
+
+        assertEquals(setOf(2), updated.cellAt(row = 0, column = 0).notes)
+    }
+
     private fun classicPuzzle() = SudokuGrid.fromRows(
         listOf(
             listOf(5, 3, null, null, 7, null, null, null, null),

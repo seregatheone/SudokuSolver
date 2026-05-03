@@ -190,7 +190,7 @@ class BoardViewModel(
     private fun onNextStepClicked() {
         val step = state.steps.getOrNull(state.nextStepIndex) ?: return
         state = state.copy(
-            grid = state.grid.setValue(step.row, step.column, step.value),
+            grid = state.grid.applyStep(step),
             stepHistory = state.stepHistory + state.grid,
             nextStepIndex = state.nextStepIndex + 1,
             highlightedValue = null,
@@ -205,5 +205,15 @@ class BoardViewModel(
         } else {
             state.copy(status = BoardStatus.StepApplied(hint))
         }
+    }
+
+    private fun SudokuGrid.applyStep(step: SudokuSolutionStep): SudokuGrid {
+        if (step.isPlacement) return setValue(step.row, step.column, step.value)
+
+        var updated = this
+        step.eliminations.forEach { elimination ->
+            updated = updated.removeNotes(elimination.row, elimination.column, elimination.values)
+        }
+        return updated
     }
 }

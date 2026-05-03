@@ -220,14 +220,30 @@ private fun statusText(status: BoardStatus): String = when (status) {
     BoardStatus.StepByStepReady -> stringResource(Res.string.board_status_step_by_step_ready)
     BoardStatus.SelfPracticeReady -> stringResource(Res.string.board_status_self_practice_ready)
     BoardStatus.HintUnavailable -> stringResource(Res.string.board_status_hint_unavailable)
-    is BoardStatus.StepApplied -> stringResource(
-        Res.string.board_status_step,
-        coordinateText(status.step.row, status.step.column),
-        status.step.value,
-        patternText(status.step.pattern),
-        relatedCellsText(status.step.relatedCells),
-    )
+    is BoardStatus.StepApplied -> stepText(status.step)
     is BoardStatus.Conflict -> conflictText(status.conflict, status.value)
+}
+
+@Composable
+private fun stepText(step: SudokuSolutionStep): String {
+    val pattern = patternText(step.pattern)
+    val related = relatedCellsText(step.relatedCells)
+    return if (step.isPlacement) {
+        stringResource(
+            Res.string.board_status_step_place,
+            coordinateText(step.row, step.column),
+            step.value,
+            pattern,
+            related,
+        )
+    } else {
+        stringResource(
+            Res.string.board_status_step_eliminate,
+            eliminationsText(step),
+            pattern,
+            related,
+        )
+    }
 }
 
 @Composable
@@ -237,6 +253,13 @@ private fun relatedCellsText(cells: List<CellPosition>): String {
         .take(6)
         .joinToString { cell -> coordinateText(cell.row, cell.column) }
 }
+
+private fun eliminationsText(step: SudokuSolutionStep): String = step.eliminations
+    .take(6)
+    .joinToString { elimination ->
+        val values = elimination.values.sorted().joinToString("/")
+        "${coordinateText(elimination.row, elimination.column)}=$values"
+    }
 
 private fun coordinateText(row: Int, column: Int): String = "${columnLabel(column)}${row + 1}"
 
@@ -248,6 +271,15 @@ private fun patternText(pattern: SudokuSolvingPattern): String = when (pattern) 
     SudokuSolvingPattern.HiddenSingleRow -> stringResource(Res.string.pattern_hidden_single_row)
     SudokuSolvingPattern.HiddenSingleColumn -> stringResource(Res.string.pattern_hidden_single_column)
     SudokuSolvingPattern.HiddenSingleBox -> stringResource(Res.string.pattern_hidden_single_box)
+    SudokuSolvingPattern.NakedPair -> stringResource(Res.string.pattern_naked_pair)
+    SudokuSolvingPattern.NakedTriple -> stringResource(Res.string.pattern_naked_triple)
+    SudokuSolvingPattern.NakedQuad -> stringResource(Res.string.pattern_naked_quad)
+    SudokuSolvingPattern.HiddenPair -> stringResource(Res.string.pattern_hidden_pair)
+    SudokuSolvingPattern.HiddenTriple -> stringResource(Res.string.pattern_hidden_triple)
+    SudokuSolvingPattern.HiddenQuad -> stringResource(Res.string.pattern_hidden_quad)
+    SudokuSolvingPattern.PointingPair -> stringResource(Res.string.pattern_pointing_pair)
+    SudokuSolvingPattern.PointingTriple -> stringResource(Res.string.pattern_pointing_triple)
+    SudokuSolvingPattern.BoxLineReduction -> stringResource(Res.string.pattern_box_line_reduction)
 }
 
 @Composable
@@ -268,7 +300,13 @@ private fun SudokuBoard(
     val thickLine = MaterialTheme.colorScheme.onSurface
     val thinLine = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
     val labelWeight = 0.55f
-    val patternTarget = patternStep?.let { CellPosition(it.row, it.column) }
+    val patternTargets = patternStep?.let { step ->
+        if (step.isPlacement) {
+            setOf(CellPosition(step.row, step.column))
+        } else {
+            step.eliminations.map { CellPosition(it.row, it.column) }.toSet()
+        }
+    }.orEmpty()
     val patternRelatedCells = patternStep?.relatedCells.orEmpty().toSet()
 
     Column(
@@ -355,7 +393,7 @@ private fun SudokuBoard(
                                     cell = cell,
                                     isSelected = isSelected,
                                     isHighlighted = isHighlighted,
-                                    isPatternTarget = patternTarget == position,
+                                    isPatternTarget = position in patternTargets,
                                     isPatternRelated = position in patternRelatedCells,
                                     onClick = { onCellSelected(position) },
                                 )

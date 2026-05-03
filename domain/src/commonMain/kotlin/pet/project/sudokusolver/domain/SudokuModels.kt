@@ -71,6 +71,20 @@ data class SudokuGrid(
         )
     }
 
+    fun removeNotes(row: Int, column: Int, values: Set<Int>): SudokuGrid {
+        require(values.all { it in 1..9 }) { "Sudoku notes must be 1..9." }
+        val index = row * Size + column
+        return copy(
+            cells = cells.mapIndexed { currentIndex, cell ->
+                if (currentIndex == index && cell.value == null) {
+                    cell.copy(notes = cell.notes - values)
+                } else {
+                    cell
+                }
+            },
+        )
+    }
+
     fun withCandidateNotes(): SudokuGrid = copy(
         cells = cells.mapIndexed { index, cell ->
             if (cell.value == null) {
@@ -178,7 +192,22 @@ enum class SudokuSolvingPattern {
     HiddenSingleRow,
     HiddenSingleColumn,
     HiddenSingleBox,
+    NakedPair,
+    NakedTriple,
+    NakedQuad,
+    HiddenPair,
+    HiddenTriple,
+    HiddenQuad,
+    PointingPair,
+    PointingTriple,
+    BoxLineReduction,
 }
+
+data class CandidateElimination(
+    val row: Int,
+    val column: Int,
+    val values: Set<Int>,
+)
 
 data class SudokuSolutionStep(
     val row: Int,
@@ -186,7 +215,10 @@ data class SudokuSolutionStep(
     val value: Int,
     val pattern: SudokuSolvingPattern,
     val relatedCells: List<CellPosition> = emptyList(),
-)
+    val eliminations: List<CandidateElimination> = emptyList(),
+) {
+    val isPlacement: Boolean = eliminations.isEmpty()
+}
 
 data class SudokuSolveResult(
     val solvedGrid: SudokuGrid,

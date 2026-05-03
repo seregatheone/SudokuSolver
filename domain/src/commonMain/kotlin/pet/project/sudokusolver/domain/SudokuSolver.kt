@@ -6,17 +6,18 @@ class SudokuSolver {
     fun hint(grid: SudokuGrid): SudokuSolutionStep? = solveInternal(grid)?.steps?.firstOrNull()
 
     private fun solveInternal(grid: SudokuGrid): SudokuSolveResult? {
-        val workingBoard = grid.values().map { it ?: 0 }.toIntArray()
-        if (!isValidBoard(workingBoard)) return null
+        val board = grid.values().map { it ?: 0 }.toIntArray()
+        if (!isValidBoard(board)) return null
 
+        val candidates = initialCandidates(grid, board)
         val steps = mutableListOf<SudokuSolutionStep>()
         while (true) {
-            val step = findLogicalStep(workingBoard) ?: break
-            workingBoard[step.row * SudokuGrid.Size + step.column] = step.value
+            val step = findLogicalStep(board, candidates) ?: break
+            applyStep(board, candidates, step)
             steps += step
         }
 
-        val solvedBoard = workingBoard.copyOf()
+        val solvedBoard = board.copyOf()
         if (!solveBoard(solvedBoard)) return null
 
         val solvedGrid = SudokuGrid(
@@ -29,99 +30,241 @@ class SudokuSolver {
         return SudokuSolveResult(solvedGrid = solvedGrid, steps = steps)
     }
 
-    private fun findLogicalStep(board: IntArray): SudokuSolutionStep? {
-        findNakedSingle(board)?.let { return it }
-        findHiddenSingleInRows(board)?.let { return it }
-        findHiddenSingleInColumns(board)?.let { return it }
-        return findHiddenSingleInBoxes(board)
+    private fun initialCandidates(grid: SudokuGrid, board: IntArray): Array<MutableSet<Int>> = Array(SudokuGrid.CellCount) { index ->
+        if (board[index] != 0) {
+            mutableSetOf()
+        } else {
+            val legalCandidates = candidatesFor(board, index).toSet()
+            val notes = grid.cells[index].notes
+            if (notes.isEmpty()) legalCandidates.toMutableSet() else notes.intersect(legalCandidates).toMutableSet()
+        }
     }
 
-    private fun findNakedSingle(board: IntArray): SudokuSolutionStep? {
+    private fun findLogicalStep(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
+        findNakedSingle(board, candidates)?.let { return it }
+        findHiddenSingles(board, candidates)?.let { return it }
+        findNakedSubset(board, candidates, size = 2)?.let { return it }
+        findNakedSubset(board, candidates, size = 3)?.let { return it }
+        findNakedSubset(board, candidates, size = 4)?.let { return it }
+        findHiddenSubset(board, candidates, size = 2)?.let { return it }
+        findHiddenSubset(board, candidates, size = 3)?.let { return it }
+        findHiddenSubset(board, candidates, size = 4)?.let { return it }
+        findPointingSet(board, candidates)?.let { return it }
+        return findBoxLineReduction(board, candidates)
+    }
+
+    private fun applyStep(board: IntArray, candidates: Array<MutableSet<Int>>, step: SudokuSolutionStep) {
+        if (step.isPlacement) {
+            val index = step.row * SudokuGrid.Size + step.column
+            board[index] = step.value
+            candidates[index].clear()
+            peerIndexes(index).forEach { peer -> candidates[peer].remove(step.value) }
+            return
+        }
+
+        step.eliminations.forEach { elimination ->
+            val index = elimination.row * SudokuGrid.Size + elimination.column
+            candidates[index].removeAll(elimination.values)
+        }
+    }
+
+    private fun findNakedSingle(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
         for (index in board.indices) {
             if (board[index] != 0) continue
-            val candidates = candidatesFor(board, index)
-            if (candidates.size == 1) {
-                return SudokuSolutionStep(
-                    row = index / SudokuGrid.Size,
-                    column = index % SudokuGrid.Size,
-                    value = candidates.first(),
+            if (candidates[index].size == 1) {
+                return placementStep(
+                    index = index,
+                    value = candidates[index].first(),
                     pattern = SudokuSolvingPattern.NakedSingle,
-                    relatedCells = filledPeers(board, index),
+                    relatedIndexes = filledPeers(board, index).map { it.index },
                 )
             }
         }
         return null
     }
 
-    private fun findHiddenSingleInRows(board: IntArray): SudokuSolutionStep? {
-        for (row in 0 until SudokuGrid.Size) {
+    private fun findHiddenSingles(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
+        rows().forEach { indexes ->
+            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingleRow)?.let { return it }
+        }
+        columns().forEach { indexes ->
+            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingleColumn)?.let { return it }
+        }
+        boxes().forEach { indexes ->
+            hiddenSingleInUnit(indexes, board, candidates, SudokuSolvingPattern.HiddenSingleBox)?.let { return it }
+        }
+        return null
+    }
+
+    private fun hiddenSingleInUnit(
+        indexes: List<Int>,
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        pattern: SudokuSolvingPattern,
+    ): SudokuSolutionStep? {
+        for (value in 1..9) {
+            val positions = indexes.filter { index -> board[index] == 0 && value in candidates[index] }
+            if (positions.size == 1) {
+                val index = positions.first()
+                return placementStep(
+                    index = index,
+                    value = value,
+                    pattern = pattern,
+                    relatedIndexes = indexes.filter { it != index },
+                )
+            }
+        }
+        return null
+    }
+
+    private fun findNakedSubset(
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        size: Int,
+    ): SudokuSolutionStep? {
+        val pattern = when (size) {
+            2 -> SudokuSolvingPattern.NakedPair
+            3 -> SudokuSolvingPattern.NakedTriple
+            else -> SudokuSolvingPattern.NakedQuad
+        }
+
+        for (unit in units()) {
+            val candidateIndexes = unit.filter { index -> board[index] == 0 && candidates[index].size in 2..size }
+            for (subset in candidateIndexes.combinations(size)) {
+                val subsetValues = subset.flatMap { index -> candidates[index] }.toSet()
+                if (subsetValues.size != size) continue
+
+                val eliminations = unit
+                    .filter { index -> index !in subset && board[index] == 0 }
+                    .mapNotNull { index ->
+                        val removed = candidates[index].intersect(subsetValues).sorted().toSet()
+                        if (removed.isEmpty()) null else CandidateElimination(index.row(), index.column(), removed)
+                    }
+
+                eliminationStep(pattern, subset, eliminations)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun findHiddenSubset(
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+        size: Int,
+    ): SudokuSolutionStep? {
+        val pattern = when (size) {
+            2 -> SudokuSolvingPattern.HiddenPair
+            3 -> SudokuSolvingPattern.HiddenTriple
+            else -> SudokuSolvingPattern.HiddenQuad
+        }
+
+        for (unit in units()) {
+            for (values in (1..9).toList().combinations(size)) {
+                val positionsByValue = values.map { value ->
+                    unit.filter { index -> board[index] == 0 && value in candidates[index] }
+                }
+                if (positionsByValue.any { it.isEmpty() }) continue
+
+                val subset = positionsByValue.flatten().distinct()
+                if (subset.size != size) continue
+
+                val allowedValues = values.toSet()
+                val eliminations = subset.mapNotNull { index ->
+                    val removed = (candidates[index] - allowedValues).sorted().toSet()
+                    if (removed.isEmpty()) null else CandidateElimination(index.row(), index.column(), removed)
+                }
+
+                eliminationStep(pattern, subset, eliminations)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun findPointingSet(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
+        for (box in boxes()) {
             for (value in 1..9) {
-                val rowIndexes = (0 until SudokuGrid.Size).map { column -> row * SudokuGrid.Size + column }
-                val positions = rowIndexes
-                    .filter { index -> board[index] == 0 && canPlace(board, row, index % SudokuGrid.Size, value) }
-                if (positions.size == 1) {
-                    val index = positions.first()
-                    return SudokuSolutionStep(
-                        row = row,
-                        column = index % SudokuGrid.Size,
-                        value = value,
-                        pattern = SudokuSolvingPattern.HiddenSingleRow,
-                        relatedCells = rowIndexes.filter { it != index }.map { it.toCellPosition() },
-                    )
+                val positions = box.filter { index -> board[index] == 0 && value in candidates[index] }
+                if (positions.size !in 2..3) continue
+
+                val sameRow = positions.map { it.row() }.distinct().singleOrNull()
+                if (sameRow != null) {
+                    val eliminations = rows()[sameRow]
+                        .filter { index -> index !in box && board[index] == 0 && value in candidates[index] }
+                        .map { index -> CandidateElimination(index.row(), index.column(), setOf(value)) }
+                    eliminationStep(pointingPattern(positions.size), positions, eliminations)?.let { return it }
+                }
+
+                val sameColumn = positions.map { it.column() }.distinct().singleOrNull()
+                if (sameColumn != null) {
+                    val eliminations = columns()[sameColumn]
+                        .filter { index -> index !in box && board[index] == 0 && value in candidates[index] }
+                        .map { index -> CandidateElimination(index.row(), index.column(), setOf(value)) }
+                    eliminationStep(pointingPattern(positions.size), positions, eliminations)?.let { return it }
                 }
             }
         }
         return null
     }
 
-    private fun findHiddenSingleInColumns(board: IntArray): SudokuSolutionStep? {
-        for (column in 0 until SudokuGrid.Size) {
-            for (value in 1..9) {
-                val columnIndexes = (0 until SudokuGrid.Size).map { row -> row * SudokuGrid.Size + column }
-                val positions = columnIndexes
-                    .filter { index -> board[index] == 0 && canPlace(board, index / SudokuGrid.Size, column, value) }
-                if (positions.size == 1) {
-                    val index = positions.first()
-                    return SudokuSolutionStep(
-                        row = index / SudokuGrid.Size,
-                        column = column,
-                        value = value,
-                        pattern = SudokuSolvingPattern.HiddenSingleColumn,
-                        relatedCells = columnIndexes.filter { it != index }.map { it.toCellPosition() },
-                    )
-                }
-            }
+    private fun findBoxLineReduction(board: IntArray, candidates: Array<MutableSet<Int>>): SudokuSolutionStep? {
+        for (row in rows()) {
+            boxLineReductionInUnit(row, boxes(), board, candidates)?.let { return it }
+        }
+        for (column in columns()) {
+            boxLineReductionInUnit(column, boxes(), board, candidates)?.let { return it }
         }
         return null
     }
 
-    private fun findHiddenSingleInBoxes(board: IntArray): SudokuSolutionStep? {
-        for (boxRow in 0 until SudokuGrid.Size step 3) {
-            for (boxColumn in 0 until SudokuGrid.Size step 3) {
-                val boxIndexes = buildList {
-                    for (row in boxRow until boxRow + 3) {
-                        for (column in boxColumn until boxColumn + 3) {
-                            add(row * SudokuGrid.Size + column)
-                        }
-                    }
-                }
-                for (value in 1..9) {
-                    val positions = boxIndexes
-                        .filter { index -> board[index] == 0 && canPlace(board, index / SudokuGrid.Size, index % SudokuGrid.Size, value) }
-                    if (positions.size == 1) {
-                        val index = positions.first()
-                        return SudokuSolutionStep(
-                            row = index / SudokuGrid.Size,
-                            column = index % SudokuGrid.Size,
-                            value = value,
-                            pattern = SudokuSolvingPattern.HiddenSingleBox,
-                            relatedCells = boxIndexes.filter { it != index }.map { it.toCellPosition() },
-                        )
-                    }
-                }
-            }
+    private fun boxLineReductionInUnit(
+        unit: List<Int>,
+        boxes: List<List<Int>>,
+        board: IntArray,
+        candidates: Array<MutableSet<Int>>,
+    ): SudokuSolutionStep? {
+        for (value in 1..9) {
+            val positions = unit.filter { index -> board[index] == 0 && value in candidates[index] }
+            if (positions.size < 2) continue
+
+            val box = boxes.singleOrNull { currentBox -> positions.all { it in currentBox } } ?: continue
+            val eliminations = box
+                .filter { index -> index !in unit && board[index] == 0 && value in candidates[index] }
+                .map { index -> CandidateElimination(index.row(), index.column(), setOf(value)) }
+            eliminationStep(SudokuSolvingPattern.BoxLineReduction, positions, eliminations)?.let { return it }
         }
         return null
+    }
+
+    private fun pointingPattern(size: Int): SudokuSolvingPattern =
+        if (size == 2) SudokuSolvingPattern.PointingPair else SudokuSolvingPattern.PointingTriple
+
+    private fun placementStep(
+        index: Int,
+        value: Int,
+        pattern: SudokuSolvingPattern,
+        relatedIndexes: List<Int>,
+    ) = SudokuSolutionStep(
+        row = index.row(),
+        column = index.column(),
+        value = value,
+        pattern = pattern,
+        relatedCells = relatedIndexes.distinct().filter { it != index }.map { it.toCellPosition() },
+    )
+
+    private fun eliminationStep(
+        pattern: SudokuSolvingPattern,
+        relatedIndexes: List<Int>,
+        eliminations: List<CandidateElimination>,
+    ): SudokuSolutionStep? {
+        val first = eliminations.firstOrNull() ?: return null
+        return SudokuSolutionStep(
+            row = first.row,
+            column = first.column,
+            value = first.values.minOrNull() ?: return null,
+            pattern = pattern,
+            relatedCells = relatedIndexes.distinct().map { it.toCellPosition() },
+            eliminations = eliminations,
+        )
     }
 
     private fun solveBoard(board: IntArray): Boolean {
@@ -152,8 +295,8 @@ class SudokuSolver {
     }
 
     private fun candidatesFor(board: IntArray, index: Int): List<Int> {
-        val row = index / SudokuGrid.Size
-        val column = index % SudokuGrid.Size
+        val row = index.row()
+        val column = index.column()
         return (1..9).filter { value -> canPlace(board, row, column, value) }
     }
 
@@ -179,7 +322,7 @@ class SudokuSolver {
             val value = board[index]
             if (value == 0) continue
             board[index] = 0
-            val isValid = canPlace(board, index / SudokuGrid.Size, index % SudokuGrid.Size, value)
+            val isValid = canPlace(board, index.row(), index.column(), value)
             board[index] = value
             if (!isValid) return false
         }
@@ -191,8 +334,8 @@ class SudokuSolver {
         .map { it.toCellPosition() }
 
     private fun peerIndexes(index: Int): Set<Int> {
-        val row = index / SudokuGrid.Size
-        val column = index % SudokuGrid.Size
+        val row = index.row()
+        val column = index.column()
         val peers = mutableSetOf<Int>()
 
         for (i in 0 until SudokuGrid.Size) {
@@ -212,8 +355,53 @@ class SudokuSolver {
         return peers
     }
 
-    private fun Int.toCellPosition() = CellPosition(
-        row = this / SudokuGrid.Size,
-        column = this % SudokuGrid.Size,
-    )
+    private fun units(): List<List<Int>> = rows() + columns() + boxes()
+
+    private fun rows(): List<List<Int>> = (0 until SudokuGrid.Size).map { row ->
+        (0 until SudokuGrid.Size).map { column -> row * SudokuGrid.Size + column }
+    }
+
+    private fun columns(): List<List<Int>> = (0 until SudokuGrid.Size).map { column ->
+        (0 until SudokuGrid.Size).map { row -> row * SudokuGrid.Size + column }
+    }
+
+    private fun boxes(): List<List<Int>> = buildList {
+        for (boxRow in 0 until SudokuGrid.Size step 3) {
+            for (boxColumn in 0 until SudokuGrid.Size step 3) {
+                add(
+                    buildList {
+                        for (row in boxRow until boxRow + 3) {
+                            for (column in boxColumn until boxColumn + 3) {
+                                add(row * SudokuGrid.Size + column)
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    private fun <T> List<T>.combinations(size: Int): List<List<T>> {
+        if (size == 0) return listOf(emptyList())
+        if (size > this.size) return emptyList()
+
+        val result = mutableListOf<List<T>>()
+        fun collect(start: Int, current: List<T>) {
+            if (current.size == size) {
+                result += current
+                return
+            }
+            for (index in start until this.size) {
+                collect(index + 1, current + this[index])
+            }
+        }
+        collect(start = 0, current = emptyList())
+        return result
+    }
+
+    private fun Int.row(): Int = this / SudokuGrid.Size
+
+    private fun Int.column(): Int = this % SudokuGrid.Size
+
+    private fun Int.toCellPosition() = CellPosition(row = row(), column = column())
 }
