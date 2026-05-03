@@ -19,19 +19,6 @@ class SudokuSolver {
         val solvedBoard = workingBoard.copyOf()
         if (!solveBoard(solvedBoard)) return null
 
-        for (index in solvedBoard.indices) {
-            if (workingBoard[index] != 0) continue
-            val row = index / SudokuGrid.Size
-            val column = index % SudokuGrid.Size
-            steps += SudokuSolutionStep(
-                row = row,
-                column = column,
-                value = solvedBoard[index],
-                pattern = SudokuSolvingPattern.CalculatedCandidate,
-                relatedCells = filledPeers(workingBoard, index),
-            )
-        }
-
         val solvedGrid = SudokuGrid(
             solvedBoard.mapIndexed { index, value ->
                 val source = grid.cells[index]

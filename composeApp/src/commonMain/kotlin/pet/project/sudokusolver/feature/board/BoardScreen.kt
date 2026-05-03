@@ -248,7 +248,6 @@ private fun patternText(pattern: SudokuSolvingPattern): String = when (pattern) 
     SudokuSolvingPattern.HiddenSingleRow -> stringResource(Res.string.pattern_hidden_single_row)
     SudokuSolvingPattern.HiddenSingleColumn -> stringResource(Res.string.pattern_hidden_single_column)
     SudokuSolvingPattern.HiddenSingleBox -> stringResource(Res.string.pattern_hidden_single_box)
-    SudokuSolvingPattern.CalculatedCandidate -> stringResource(Res.string.pattern_calculated_candidate)
 }
 
 @Composable

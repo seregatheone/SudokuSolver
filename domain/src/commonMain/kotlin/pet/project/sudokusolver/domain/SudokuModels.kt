@@ -178,7 +178,6 @@ enum class SudokuSolvingPattern {
     HiddenSingleRow,
     HiddenSingleColumn,
     HiddenSingleBox,
-    CalculatedCandidate,
 }
 
 data class SudokuSolutionStep(
