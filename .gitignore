@@ -8,7 +8,14 @@ Thumbs.db
 .fleet/
 *.iml
 .codex/
+.claude/
+.qwen/
 AGENTS.md
+
+# Aider local history and caches
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v*/
 
 # Gradle and Kotlin
 .gradle/
