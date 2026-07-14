@@ -70,6 +70,7 @@ internal object SudokuStrategyRegistry {
         XChainStrategy,
         XYChainStrategy,
         AlternatingInferenceChainStrategy,
+        ForcingChainStrategy,
         NiceLoopStrategy,
         ContinuousLoopStrategy,
         DiscontinuousLoopStrategy,
@@ -86,6 +87,8 @@ internal object SudokuStrategyRegistry {
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.SashimiXWing, requireSashimi = true),
         FinnedFishStrategy(size = 3, pattern = SudokuSolvingPattern.FinnedSwordfish),
         ThreeDMedusaStrategy,
+        BowmansBingoStrategy,
+        NishioStrategy,
     ).associateBy { it.pattern }
 
     fun strategyFor(pattern: SudokuSolvingPattern): SudokuStrategy? = strategiesByPattern[pattern]
