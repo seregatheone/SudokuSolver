@@ -75,6 +75,8 @@ internal object SudokuStrategyRegistry {
         DiscontinuousLoopStrategy,
         GroupedAicStrategy,
         AlsXzStrategy,
+        AlsXyWingStrategy,
+        DeathBlossomStrategy,
         UniqueRectangleStrategy,
         SimpleColoringStrategy,
         MultiColoringStrategy,
