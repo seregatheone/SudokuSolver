@@ -22,12 +22,12 @@ internal class SudokuBoardState private constructor(
     fun toSolvedGrid(source: SudokuGrid, solvedBoard: IntArray): SudokuGrid = SudokuGrid(
         solvedBoard.mapIndexed { index, value ->
             val sourceCell = source.cells[index]
-            SudokuCell(value = value, isGiven = sourceCell.isGiven)
+            sourceCell.copy(value = value, notes = emptySet())
         },
     )
 
     companion object {
-        fun from(grid: SudokuGrid): SudokuBoardState? {
+        fun from(grid: SudokuGrid, useCellNotes: Boolean = true): SudokuBoardState? {
             val board = grid.values().map { it ?: 0 }.toIntArray()
             if (!SudokuRules.isValidBoard(board)) return null
 
@@ -36,7 +36,7 @@ internal class SudokuBoardState private constructor(
                     mutableSetOf()
                 } else {
                     val legalCandidates = SudokuRules.candidatesFor(board, index).toSet()
-                    val notes = grid.cells[index].notes
+                    val notes = if (useCellNotes) grid.cells[index].notes else emptySet()
                     if (notes.isEmpty()) legalCandidates.toMutableSet() else notes.intersect(legalCandidates).toMutableSet()
                 }
             }

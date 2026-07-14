@@ -9,6 +9,7 @@ import pet.project.sudokusolver.domain.SolutionMode
 import pet.project.sudokusolver.domain.SudokuConflict
 import pet.project.sudokusolver.domain.SudokuGrid
 import pet.project.sudokusolver.domain.SudokuSolutionStep
+import pet.project.sudokusolver.domain.SudokuSolveResult
 import pet.project.sudokusolver.domain.SudokuSolver
 
 data class BoardState(
@@ -152,20 +153,30 @@ class BoardViewModel(
 
         when (mode) {
             SolutionMode.Fast -> {
-                val result = solver.solve(state.grid)
-                state = if (result == null) {
-                    state.copy(status = BoardStatus.SolveFailed)
-                } else {
-                    state.copy(grid = result.solvedGrid, status = BoardStatus.FastSolved)
+                state = when (val result = solver.solve(state.grid)) {
+                    is SudokuSolveResult.Unique -> {
+                        state.copy(grid = result.solvedGrid, status = BoardStatus.FastSolved)
+                    }
+
+                    is SudokuSolveResult.Invalid,
+                    is SudokuSolveResult.Multiple,
+                    SudokuSolveResult.Unsolvable,
+                    -> state.copy(status = BoardStatus.SolveFailed)
                 }
             }
 
             SolutionMode.StepByStep -> {
-                val result = solver.solve(state.grid)
-                state = if (result == null || result.steps.isEmpty()) {
+                val steps = when (val result = solver.solve(state.grid)) {
+                    is SudokuSolveResult.Unique -> result.steps
+                    is SudokuSolveResult.Multiple -> result.steps
+                    is SudokuSolveResult.Invalid,
+                    SudokuSolveResult.Unsolvable,
+                    -> emptyList()
+                }
+                state = if (steps.isEmpty()) {
                     state.copy(status = BoardStatus.NoStepsAvailable)
                 } else {
-                    state.copy(steps = result.steps, status = BoardStatus.StepByStepReady)
+                    state.copy(steps = steps, status = BoardStatus.StepByStepReady)
                 }
             }
 
