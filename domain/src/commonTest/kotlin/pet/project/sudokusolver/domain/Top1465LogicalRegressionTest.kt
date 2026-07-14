@@ -22,6 +22,28 @@ class Top1465LogicalRegressionTest {
         assertTrue(SudokuSolvingPattern.XYWing in patterns)
     }
 
+    @Test
+    fun line81IsSolvedByRegisteredLogicalStrategies() {
+        val puzzle = "2...6...8.743.........2....62......1...4..5..8...........5..34......1..........7."
+            .toGrid()
+        val state = checkNotNull(SudokuBoardState.from(puzzle, useCellNotes = false))
+        val patterns = buildList {
+            while (true) {
+                val step = SudokuStrategyRegistry.findNextStep(state) ?: break
+                state.apply(step)
+                add(step.pattern)
+            }
+        }
+
+        assertTrue(
+            state.board.none { it == 0 },
+            "top1465 line 81 must not require backtracking; " +
+                "remaining=${state.board.count { it == 0 }}, patterns=$patterns",
+        )
+        assertTrue(SudokuRules.isValidBoard(state.board))
+        assertTrue(SudokuSolvingPattern.TwoStringKite in patterns)
+    }
+
     private fun String.toGrid(): SudokuGrid = SudokuGrid.fromRows(
         chunked(SudokuGrid.Size).map { row ->
             row.map { value -> value.takeUnless { it == '.' }?.digitToInt() }
