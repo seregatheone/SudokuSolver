@@ -3,8 +3,8 @@ package pet.project.sudokusolver.domain
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SudokuSolverTest {
@@ -12,9 +12,8 @@ class SudokuSolverTest {
     fun solvesClassicPuzzle() {
         val puzzle = classicPuzzle()
 
-        val solution = SudokuSolver().solve(puzzle)
+        val solution = assertIs<SudokuSolveResult.Unique>(SudokuSolver().solve(puzzle))
 
-        assertNotNull(solution)
         assertEquals(5, solution.solvedGrid.valueAt(0, 0))
         assertEquals(4, solution.solvedGrid.valueAt(0, 2))
         assertEquals(9, solution.solvedGrid.valueAt(8, 8))
@@ -36,7 +35,10 @@ class SudokuSolverTest {
             ),
         )
 
-        assertNull(SudokuSolver().solve(puzzle))
+        val result = assertIs<SudokuSolveResult.Invalid>(SudokuSolver().solve(puzzle))
+
+        assertFalse(result.validation.isValid)
+        assertTrue(result.validation.conflicts.any { it.type == SudokuConflict.Row && it.value == 5 })
     }
 
     @Test

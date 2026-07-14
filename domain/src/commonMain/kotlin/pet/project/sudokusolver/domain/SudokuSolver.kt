@@ -1,9 +1,12 @@
 package pet.project.sudokusolver.domain
 
 class SudokuSolver {
-    fun solve(grid: SudokuGrid): SudokuSolveResult? = solveInternal(grid)
+    fun solve(grid: SudokuGrid): SudokuSolveResult = solveInternal(grid)
 
-    fun hint(grid: SudokuGrid): SudokuSolutionStep? = solveInternal(grid)?.steps?.firstOrNull()
+    fun hint(grid: SudokuGrid): SudokuSolutionStep? {
+        val state = SudokuBoardState.from(grid, useCellNotes = true) ?: return null
+        return SudokuStrategyRegistry.findNextStep(state)
+    }
 
     fun hintForPattern(grid: SudokuGrid, pattern: SudokuSolvingPattern): SudokuSolutionStep? {
         val state = SudokuBoardState.from(grid) ?: return null
@@ -12,8 +15,11 @@ class SudokuSolver {
 
     fun supportedPatterns(): List<SudokuSolvingPattern> = SudokuStrategyRegistry.patternOrder
 
-    private fun solveInternal(grid: SudokuGrid): SudokuSolveResult? {
-        val state = SudokuBoardState.from(grid) ?: return null
+    private fun solveInternal(grid: SudokuGrid): SudokuSolveResult {
+        val validation = grid.validate()
+        if (!validation.isValid) return SudokuSolveResult.Invalid(validation)
+
+        val state = checkNotNull(SudokuBoardState.from(grid, useCellNotes = false))
         val steps = mutableListOf<SudokuSolutionStep>()
 
         while (true) {
@@ -22,12 +28,17 @@ class SudokuSolver {
             steps += step
         }
 
-        val solvedBoard = state.board.copyOf()
-        if (!SudokuBacktrackingSolver.solve(solvedBoard)) return null
+        val solvedBoards = SudokuBacktrackingSolver.findSolutions(state.board, limit = 2)
+        if (solvedBoards.isEmpty()) return SudokuSolveResult.Unsolvable
 
-        return SudokuSolveResult(
-            solvedGrid = state.toSolvedGrid(source = grid, solvedBoard = solvedBoard),
-            steps = steps,
-        )
+        val solutions = solvedBoards.map { solvedBoard ->
+            state.toSolvedGrid(source = grid, solvedBoard = solvedBoard)
+        }
+
+        return if (solutions.size == 1) {
+            SudokuSolveResult.Unique(solvedGrid = solutions.single(), steps = steps)
+        } else {
+            SudokuSolveResult.Multiple(solutions = solutions, steps = steps)
+        }
     }
 }

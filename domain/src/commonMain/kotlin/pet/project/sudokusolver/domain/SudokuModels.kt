@@ -1,32 +1,147 @@
 package pet.project.sudokusolver.domain
 
-data class SudokuCell(
-    val value: Int? = null,
-    val notes: Set<Int> = emptySet(),
+class SudokuCell(
+    value: Int? = null,
+    notes: Set<Int> = emptySet(),
     val isGiven: Boolean = false,
-)
+    val confidence: Float? = null,
+    val source: SudokuCellSource = SudokuCellSource.Unknown,
+) {
+    val value: Int? = value
+    val notes: Set<Int> = notes.toSet()
+
+    init {
+        require(value == null || value in 1..9) { "Sudoku cell value must be 1..9." }
+        require(notes.all { it in 1..9 }) { "Sudoku notes must be 1..9." }
+        require(confidence == null || confidence.isFinite() && confidence in 0f..1f) {
+            "Sudoku cell confidence must be finite and between 0 and 1."
+        }
+    }
+
+    fun copy(
+        value: Int? = this.value,
+        notes: Set<Int> = this.notes,
+        isGiven: Boolean = this.isGiven,
+        confidence: Float? = this.confidence,
+        source: SudokuCellSource = this.source,
+    ): SudokuCell = SudokuCell(
+        value = value,
+        notes = notes,
+        isGiven = isGiven,
+        confidence = confidence,
+        source = source,
+    )
+
+    override fun equals(other: Any?): Boolean = other is SudokuCell &&
+        value == other.value &&
+        notes == other.notes &&
+        isGiven == other.isGiven &&
+        confidence == other.confidence &&
+        source == other.source
+
+    override fun hashCode(): Int {
+        var result = value ?: 0
+        result = 31 * result + notes.hashCode()
+        result = 31 * result + isGiven.hashCode()
+        result = 31 * result + (confidence?.hashCode() ?: 0)
+        result = 31 * result + source.hashCode()
+        return result
+    }
+
+    override fun toString(): String =
+        "SudokuCell(value=$value, notes=$notes, isGiven=$isGiven, confidence=$confidence, source=$source)"
+}
+
+enum class SudokuCellSource {
+    Unknown,
+    Manual,
+    Ocr,
+}
 
 data class CellPosition(
     val row: Int,
     val column: Int,
 ) {
+    init {
+        require(row in 0 until SudokuGrid.Size) { "Sudoku row must be 0..8." }
+        require(column in 0 until SudokuGrid.Size) { "Sudoku column must be 0..8." }
+    }
+
     val index: Int = row * SudokuGrid.Size + column
 }
 
-data class SudokuGrid(
-    val cells: List<SudokuCell>,
-) {
+sealed interface SudokuEditAction {
+    val position: CellPosition
+
+    data class SetValue(
+        override val position: CellPosition,
+        val value: Int,
+        val isGiven: Boolean = false,
+    ) : SudokuEditAction {
+        init {
+            require(value in 1..9) { "Sudoku cell value must be 1..9." }
+        }
+    }
+
+    data class ClearCell(
+        override val position: CellPosition,
+    ) : SudokuEditAction
+
+    data class ToggleNote(
+        override val position: CellPosition,
+        val value: Int,
+    ) : SudokuEditAction {
+        init {
+            require(value in 1..9) { "Sudoku note value must be 1..9." }
+        }
+    }
+
+    data class RemoveNotes(
+        override val position: CellPosition,
+        val values: Set<Int>,
+    ) : SudokuEditAction {
+        init {
+            require(values.all { it in 1..9 }) { "Sudoku notes must be 1..9." }
+        }
+    }
+}
+
+class SudokuGrid(cells: List<SudokuCell>) {
+    val cells: List<SudokuCell> = cells.toList()
+
     init {
         require(cells.size == CellCount) { "Sudoku grid must contain exactly $CellCount cells." }
-        cells.forEach { cell ->
-            require(cell.value == null || cell.value in 1..9) { "Sudoku cell value must be 1..9." }
-            require(cell.notes.all { it in 1..9 }) { "Sudoku notes must be 1..9." }
-        }
     }
 
     fun valueAt(row: Int, column: Int): Int? = cells[row * Size + column].value
 
     fun cellAt(row: Int, column: Int): SudokuCell = cells[row * Size + column]
+
+    fun edit(action: SudokuEditAction): SudokuGrid = when (action) {
+        is SudokuEditAction.SetValue -> setValue(
+            row = action.position.row,
+            column = action.position.column,
+            value = action.value,
+            isGiven = action.isGiven,
+        )
+
+        is SudokuEditAction.ClearCell -> clearCell(
+            row = action.position.row,
+            column = action.position.column,
+        )
+
+        is SudokuEditAction.ToggleNote -> toggleNote(
+            row = action.position.row,
+            column = action.position.column,
+            value = action.value,
+        )
+
+        is SudokuEditAction.RemoveNotes -> removeNotes(
+            row = action.position.row,
+            column = action.position.column,
+            values = action.values,
+        )
+    }
 
     fun setValue(row: Int, column: Int, value: Int?, isGiven: Boolean = false): SudokuGrid {
         require(value == null || value in 1..9) { "Sudoku cell value must be 1..9." }
@@ -36,7 +151,16 @@ data class SudokuGrid(
             cells = cells.mapIndexed { currentIndex, cell ->
                 when {
                     currentIndex == index -> {
-                        cell.copy(value = value, notes = if (value == null) cell.notes else emptySet(), isGiven = isGiven)
+                        cell.copy(
+                            value = value,
+                            notes = if (value == null) cell.notes else emptySet(),
+                            isGiven = isGiven,
+                            source = if (cell.source == SudokuCellSource.Unknown && value != null) {
+                                SudokuCellSource.Manual
+                            } else {
+                                cell.source
+                            },
+                        )
                     }
                     currentIndex in affectedPeerIndexes -> {
                         cell.copy(notes = cell.notes - requireNotNull(value))
@@ -66,7 +190,11 @@ data class SudokuGrid(
         val index = row * Size + column
         return copy(
             cells = cells.mapIndexed { currentIndex, cell ->
-                if (currentIndex == index) cell.copy(value = null, notes = emptySet()) else cell
+                if (currentIndex == index) {
+                    cell.copy(value = null, notes = emptySet(), isGiven = false)
+                } else {
+                    cell
+                }
             },
         )
     }
@@ -156,19 +284,35 @@ data class SudokuGrid(
 
     fun values(): List<Int?> = cells.map { it.value }
 
+    fun copy(cells: List<SudokuCell> = this.cells): SudokuGrid = SudokuGrid(cells)
+
+    override fun equals(other: Any?): Boolean = other is SudokuGrid && cells == other.cells
+
+    override fun hashCode(): Int = cells.hashCode()
+
+    override fun toString(): String = "SudokuGrid(cells=$cells)"
+
     companion object {
         const val Size = 9
         const val CellCount = Size * Size
 
         val Empty = SudokuGrid(List(CellCount) { SudokuCell() })
 
-        fun fromRows(rows: List<List<Int?>>, markAsGiven: Boolean = true): SudokuGrid {
+        fun fromRows(
+            rows: List<List<Int?>>,
+            markAsGiven: Boolean = true,
+            source: SudokuCellSource = SudokuCellSource.Manual,
+        ): SudokuGrid {
             require(rows.size == Size) { "Sudoku must contain 9 rows." }
             require(rows.all { it.size == Size }) { "Each sudoku row must contain 9 values." }
 
             return SudokuGrid(
                 rows.flatten().map { value ->
-                    SudokuCell(value = value, isGiven = markAsGiven && value != null)
+                    SudokuCell(
+                        value = value,
+                        isGiven = markAsGiven && value != null,
+                        source = if (value == null) SudokuCellSource.Unknown else source,
+                    )
                 },
             )
         }
@@ -250,7 +394,45 @@ data class SudokuSolutionStep(
     val isPlacement: Boolean = eliminations.isEmpty()
 }
 
-data class SudokuSolveResult(
-    val solvedGrid: SudokuGrid,
-    val steps: List<SudokuSolutionStep>,
-)
+sealed interface SudokuSolveResult {
+    data class Invalid(
+        val validation: SudokuValidation,
+    ) : SudokuSolveResult
+
+    data object Unsolvable : SudokuSolveResult
+
+    class Multiple(
+        solutions: List<SudokuGrid>,
+        steps: List<SudokuSolutionStep>,
+    ) : SudokuSolveResult {
+        val solutions: List<SudokuGrid> = solutions.toList()
+        val steps: List<SudokuSolutionStep> = steps.toList()
+
+        init {
+            require(this.solutions.size >= 2) { "Multiple result must contain at least two solutions." }
+        }
+
+        override fun equals(other: Any?): Boolean = other is Multiple &&
+            solutions == other.solutions &&
+            steps == other.steps
+
+        override fun hashCode(): Int = 31 * solutions.hashCode() + steps.hashCode()
+
+        override fun toString(): String = "Multiple(solutions=$solutions, steps=$steps)"
+    }
+
+    class Unique(
+        val solvedGrid: SudokuGrid,
+        steps: List<SudokuSolutionStep>,
+    ) : SudokuSolveResult {
+        val steps: List<SudokuSolutionStep> = steps.toList()
+
+        override fun equals(other: Any?): Boolean = other is Unique &&
+            solvedGrid == other.solvedGrid &&
+            steps == other.steps
+
+        override fun hashCode(): Int = 31 * solvedGrid.hashCode() + steps.hashCode()
+
+        override fun toString(): String = "Unique(solvedGrid=$solvedGrid, steps=$steps)"
+    }
+}
