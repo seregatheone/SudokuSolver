@@ -86,6 +86,7 @@ internal object SudokuStrategyRegistry {
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.FinnedXWing),
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.SashimiXWing, requireSashimi = true),
         FinnedFishStrategy(size = 3, pattern = SudokuSolvingPattern.FinnedSwordfish),
+        KrakenFishStrategy,
         ThreeDMedusaStrategy,
         BowmansBingoStrategy,
         NishioStrategy,
