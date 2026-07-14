@@ -1,7 +1,7 @@
 package pet.project.sudokusolver.domain
 
 internal object SudokuStrategyRegistry {
-    val patternOrder = listOf(
+    val executablePatterns = listOf(
         SudokuSolvingPattern.NakedSingle,
         SudokuSolvingPattern.HiddenSingle,
         SudokuSolvingPattern.LockedCandidatesPointing,
@@ -46,6 +46,16 @@ internal object SudokuStrategyRegistry {
         SudokuSolvingPattern.BowmansBingo,
         SudokuSolvingPattern.Nishio,
     )
+
+    private val manualOnlyPatterns = setOf(
+        SudokuSolvingPattern.ForcingChain,
+        SudokuSolvingPattern.NiceLoop,
+        SudokuSolvingPattern.BowmansBingo,
+        SudokuSolvingPattern.Nishio,
+    )
+
+    // Assumption searches remain available through hintForPattern(), but are too expensive for every hint pass.
+    val automaticSearchOrder = executablePatterns.filterNot { pattern -> pattern in manualOnlyPatterns }
 
     private val strategiesByPattern: Map<SudokuSolvingPattern, SudokuStrategy> = listOf(
         NakedSingleStrategy,
@@ -93,11 +103,16 @@ internal object SudokuStrategyRegistry {
         NishioStrategy,
     ).associateBy { it.pattern }
 
+    init {
+        require(executablePatterns.size == executablePatterns.distinct().size)
+        require(executablePatterns.toSet() == strategiesByPattern.keys)
+        require(automaticSearchOrder.all { pattern -> pattern in executablePatterns })
+    }
+
     fun strategyFor(pattern: SudokuSolvingPattern): SudokuStrategy? = strategiesByPattern[pattern]
 
     fun findNextStep(state: SudokuBoardState): SudokuSolutionStep? {
-        for (pattern in patternOrder) {
-            if (pattern == SudokuSolvingPattern.NiceLoop) continue
+        for (pattern in automaticSearchOrder) {
             strategyFor(pattern)?.findStep(state)?.let { return it }
         }
         return null

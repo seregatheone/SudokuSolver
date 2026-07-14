@@ -2,6 +2,7 @@ package pet.project.sudokusolver.domain
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -56,6 +57,34 @@ class SudokuSolverFullPatternCatalogTest {
         )
 
         assertEquals(expected, SudokuSolver().supportedPatterns())
+    }
+
+    @Test
+    fun separatesConceptualExecutableAndAutomaticPatternCatalogs() {
+        val solver = SudokuSolver()
+        val conceptualPatterns = solver.catalogPatterns()
+        val executablePatterns = solver.supportedPatterns()
+        val automaticPatterns = solver.automaticPatterns()
+
+        assertEquals(SudokuSolvingPattern.entries, conceptualPatterns)
+        assertTrue(SudokuSolvingPattern.AlmostLockedSet in conceptualPatterns)
+        assertFalse(SudokuSolvingPattern.AlmostLockedSet in executablePatterns)
+        assertTrue(SudokuSolvingPattern.NiceLoop in executablePatterns)
+        val manualOnlyPatterns = setOf(
+            SudokuSolvingPattern.ForcingChain,
+            SudokuSolvingPattern.NiceLoop,
+            SudokuSolvingPattern.BowmansBingo,
+            SudokuSolvingPattern.Nishio,
+        )
+        assertTrue(manualOnlyPatterns.all { pattern -> pattern in executablePatterns })
+        assertTrue(manualOnlyPatterns.none { pattern -> pattern in automaticPatterns })
+        assertEquals(
+            executablePatterns.filterNot { pattern -> pattern in manualOnlyPatterns },
+            automaticPatterns,
+        )
+        assertTrue(
+            executablePatterns.all { pattern -> SudokuStrategyRegistry.strategyFor(pattern) != null },
+        )
     }
 
     @Test

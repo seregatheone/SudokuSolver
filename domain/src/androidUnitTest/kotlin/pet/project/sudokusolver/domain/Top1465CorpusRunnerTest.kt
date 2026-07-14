@@ -42,6 +42,13 @@ class Top1465CorpusRunnerTest {
         assertEquals(Top1465CorpusContract.PuzzleCount, report.puzzles.size)
         assertEquals(Top1465CorpusContract.Sha256, report.actualSha256)
         assertTrue(report.elapsedMilliseconds <= Top1465CorpusContract.MaxRuntime.inWholeMilliseconds)
+        assertTrue(
+            report.puzzles.count(Top1465PuzzleResult::logicallySolved) >=
+                Top1465CorpusContract.MinimumLogicallySolved,
+        )
+        assertTrue(report.puzzles.all { puzzle -> puzzle.firstIncorrectStep == null })
+        assertTrue(report.puzzles.all { puzzle -> puzzle.firstIncorrectElimination == null })
+        assertTrue(report.puzzles.all { puzzle -> puzzle.firstIncorrectCandidateLoss == null })
         println(report.summary())
     }
 }
@@ -50,6 +57,7 @@ private object Top1465CorpusContract {
     const val SourceUrl = "http://magictour.free.fr/top1465"
     const val Sha256 = "32837f38ece94e75678deadbe256aeafda704c8d4c2f8b5095a630ce2d0114d3"
     const val PuzzleCount = 1_465
+    const val MinimumLogicallySolved = 369
     const val RunEnvironmentVariable = "TOP1465_RUN"
     const val SourceEnvironmentVariable = "TOP1465_SOURCE"
     const val OutputEnvironmentVariable = "TOP1465_OUTPUT_DIR"
