@@ -72,11 +72,13 @@ internal object SudokuStrategyRegistry {
         XYChainStrategy,
         UniqueRectangleStrategy,
         SimpleColoringStrategy,
+        MultiColoringStrategy,
         RemotePairStrategy,
         SueDeCoqStrategy,
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.FinnedXWing),
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.SashimiXWing, requireSashimi = true),
         FinnedFishStrategy(size = 3, pattern = SudokuSolvingPattern.FinnedSwordfish),
+        ThreeDMedusaStrategy,
     ).associateBy { it.pattern }
 
     fun strategyFor(pattern: SudokuSolvingPattern): SudokuStrategy? = strategiesByPattern[pattern]
