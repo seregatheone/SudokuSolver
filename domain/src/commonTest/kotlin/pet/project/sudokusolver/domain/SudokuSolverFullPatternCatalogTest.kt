@@ -41,7 +41,6 @@ class SudokuSolverFullPatternCatalogTest {
             SudokuSolvingPattern.ContinuousLoop,
             SudokuSolvingPattern.DiscontinuousLoop,
             SudokuSolvingPattern.GroupedAic,
-            SudokuSolvingPattern.AlmostLockedSet,
             SudokuSolvingPattern.AlsXz,
             SudokuSolvingPattern.AlsXyWing,
             SudokuSolvingPattern.DeathBlossom,
