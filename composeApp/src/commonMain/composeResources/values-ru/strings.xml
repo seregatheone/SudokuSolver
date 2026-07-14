@@ -11,6 +11,9 @@
     <string name="photo_error_image_too_small">Изображение слишком маленькое для поиска доски судоку.</string>
     <string name="photo_error_board_not_found">На изображении не найдена доска судоку.</string>
     <string name="photo_error_invalid_board_geometry">Не удалось разделить найденную доску на 81 клетку.</string>
+    <string name="photo_error_model_unavailable">Модель распознавания судоку недоступна на этом устройстве.</string>
+    <string name="photo_error_model_incompatible">Установленная модель распознавания несовместима с этой версией приложения.</string>
+    <string name="photo_error_model_integrity_failed">Модель распознавания повреждена. Переустановите приложение и повторите попытку.</string>
     <string name="photo_error_recognition_failed">Не удалось распознать судоку на фотографии.</string>
 
     <string name="board_back_symbol">‹</string>

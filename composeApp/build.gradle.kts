@@ -29,6 +29,8 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.fragment)
+            implementation(libs.litert)
             implementation(libs.opencv)
         }
         commonMain.dependencies {

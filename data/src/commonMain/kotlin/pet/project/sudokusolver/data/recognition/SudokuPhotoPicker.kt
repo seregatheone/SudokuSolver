@@ -19,6 +19,10 @@ enum class SudokuPhotoPickFailure {
     ImageTooSmall,
     BoardNotFound,
     InvalidBoardGeometry,
+    ModelUnavailable,
+    ModelIncompatible,
+    ModelIntegrityFailed,
+    InferenceFailed,
     RecognitionFailed,
 }
 

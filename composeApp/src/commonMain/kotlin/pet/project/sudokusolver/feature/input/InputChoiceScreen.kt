@@ -297,6 +297,11 @@ private fun photoFailureText(failure: SudokuPhotoPickFailure): String = when (fa
     SudokuPhotoPickFailure.BoardNotFound -> stringResource(Res.string.photo_error_board_not_found)
     SudokuPhotoPickFailure.InvalidBoardGeometry ->
         stringResource(Res.string.photo_error_invalid_board_geometry)
+    SudokuPhotoPickFailure.ModelUnavailable -> stringResource(Res.string.photo_error_model_unavailable)
+    SudokuPhotoPickFailure.ModelIncompatible -> stringResource(Res.string.photo_error_model_incompatible)
+    SudokuPhotoPickFailure.ModelIntegrityFailed ->
+        stringResource(Res.string.photo_error_model_integrity_failed)
+    SudokuPhotoPickFailure.InferenceFailed -> stringResource(Res.string.photo_error_recognition_failed)
     SudokuPhotoPickFailure.RecognitionFailed -> stringResource(Res.string.photo_error_recognition_failed)
 }
 

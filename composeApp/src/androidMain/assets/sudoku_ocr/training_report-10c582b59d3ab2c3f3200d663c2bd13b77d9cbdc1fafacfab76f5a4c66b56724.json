@@ -1,0 +1,30 @@
+{
+  "dataset": {
+    "generated_training_boards": 80,
+    "generated_validation_boards": 20,
+    "top1465_images": 1096,
+    "top1465_training_images": 875,
+    "top1465_validation_images": 221,
+    "top1465_validation_split": "line % 5 == 1",
+    "top1465_validation_includes": [
+      1
+    ]
+  },
+  "model_sha256": "fd75d718e72265c2e38b436b2ac96282ffc8ae3ba2463788a4df52f8448e0ef9",
+  "model_version": "1.1.0",
+  "reference_vectors_sha256": "0db0166fb7d4c49ebc4294a6c8470fc2fa8fee2c9a465084900e3dd23ea8f78e",
+  "schema_version": "1.0.0",
+  "seed": 42,
+  "training": {
+    "affine_copies_per_top1465_cell": 1,
+    "batch_size": 128,
+    "cells": 53062,
+    "epochs": 8
+  },
+  "validation": {
+    "accuracy": 1.0,
+    "cells": 6609,
+    "top1465_accuracy": 1.0,
+    "top1465_cells": 4989
+  }
+}

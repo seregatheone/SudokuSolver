@@ -1,5 +1,6 @@
 package pet.project.sudokusolver.recognition
 
+import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.ComponentActivity
@@ -12,13 +13,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import pet.project.sudokusolver.data.recognition.SudokuPhotoPickFailure
 import pet.project.sudokusolver.data.recognition.SudokuPhotoPickResult
 import pet.project.sudokusolver.data.recognition.SudokuPhotoPicker
-import pet.project.sudokusolver.domain.SudokuGrid
 
 class AndroidSudokuPhotoPicker(
     private val activity: ComponentActivity,
     private val recognitionUseCase: AndroidSudokuImageRecognitionUseCase = AndroidSudokuImageRecognitionUseCase(
         decoder = AndroidSudokuImageDecoder(activity.contentResolver),
-        recognizer = AndroidSudokuRecognitionRepository(),
+        recognizer = AndroidSudokuRecognitionRepository(activity.assets),
     ),
     private val worker: ExecutorService = Executors.newSingleThreadExecutor(),
 ) : SudokuPhotoPicker, AutoCloseable {
@@ -120,15 +120,21 @@ fun interface AndroidSudokuImageRecognizer {
 }
 
 class AndroidSudokuRecognitionRepository(
+    private val assetManager: AssetManager,
     private val boardExtractor: AndroidSudokuBoardExtractor = AndroidSudokuBoardExtractor(),
 ) : AndroidSudokuImageRecognizer {
     override fun recognize(image: AndroidSudokuImage): SudokuPhotoPickResult {
         check(!image.bitmap.isRecycled) { "Recognition requires live decoded pixels." }
 
         return when (val result = boardExtractor.extract(image.bitmap)) {
-            is AndroidSudokuBoardExtractionResult.Extracted -> result.board.use {
-                // Issue #5 replaces this fixture grid with LiteRT inference over the 81 crops.
-                SudokuPhotoPickResult.Recognized(SampleRecognizedGrid)
+            is AndroidSudokuBoardExtractionResult.Extracted -> result.board.use { board ->
+                try {
+                    AndroidSudokuDigitRecognizer.create(assetManager).use { recognizer ->
+                        SudokuPhotoPickResult.Recognized(recognizer.recognize(board.cells))
+                    }
+                } catch (error: AndroidSudokuOcrException) {
+                    SudokuPhotoPickResult.Failed(error.failure)
+                }
             }
 
             is AndroidSudokuBoardExtractionResult.Failed -> SudokuPhotoPickResult.Failed(
@@ -146,17 +152,3 @@ private fun AndroidSudokuBoardFailure.toPhotoPickFailure(): SudokuPhotoPickFailu
     AndroidSudokuBoardFailure.InvalidGeometry -> SudokuPhotoPickFailure.InvalidBoardGeometry
     AndroidSudokuBoardFailure.ProcessingFailed -> SudokuPhotoPickFailure.RecognitionFailed
 }
-
-private val SampleRecognizedGrid = SudokuGrid.fromRows(
-    listOf(
-        listOf(5, 3, null, null, 7, null, null, null, null),
-        listOf(6, null, null, 1, 9, 5, null, null, null),
-        listOf(null, 9, 8, null, null, null, null, 6, null),
-        listOf(8, null, null, null, 6, null, null, null, 3),
-        listOf(4, null, null, 8, null, 3, null, null, 1),
-        listOf(7, null, null, null, 2, null, null, null, 6),
-        listOf(null, 6, null, null, null, null, 2, 8, null),
-        listOf(null, null, null, 4, 1, 9, null, null, 5),
-        listOf(null, null, null, null, 8, null, null, 7, 9),
-    ),
-)
