@@ -51,11 +51,11 @@ fun App(
 
         when (val currentRoute = appViewModel.route) {
             AppRoute.InputChoice -> {
-                val inputChoiceViewModel = viewModel { InputChoiceViewModel(photoPicker) }
+                val inputChoiceViewModel = viewModel { InputChoiceViewModel() }
                 InputChoiceScreen(
                     state = inputChoiceViewModel.state,
                     onIntent = { intent ->
-                        inputChoiceViewModel.onIntent(intent) { effect ->
+                        inputChoiceViewModel.onIntent(intent, photoPicker) { effect ->
                             when (effect) {
                                 is InputChoiceEffect.NavigateToBoard -> appViewModel.openBoard(effect.grid)
                             }

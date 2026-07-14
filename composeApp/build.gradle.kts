@@ -58,6 +58,8 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner =
+            "pet.project.sudokusolver.recognition.SudokuImageDecoderInstrumentation"
     }
     packaging {
         resources {
@@ -78,4 +80,3 @@ android {
 dependencies {
     debugImplementation(libs.compose.uiTooling)
 }
-

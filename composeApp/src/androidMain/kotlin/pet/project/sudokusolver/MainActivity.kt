@@ -9,15 +9,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import pet.project.sudokusolver.recognition.AndroidSudokuPhotoPicker
 
 class MainActivity : ComponentActivity() {
+    private lateinit var photoPicker: AndroidSudokuPhotoPicker
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        val photoPicker = AndroidSudokuPhotoPicker(this)
+        photoPicker = AndroidSudokuPhotoPicker(this)
 
         setContent {
             App(photoPicker = photoPicker)
         }
+    }
+
+    override fun onDestroy() {
+        if (::photoPicker.isInitialized) photoPicker.close()
+        super.onDestroy()
     }
 }
 

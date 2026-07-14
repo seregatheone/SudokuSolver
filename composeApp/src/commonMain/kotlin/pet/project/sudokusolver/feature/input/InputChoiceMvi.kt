@@ -12,6 +12,7 @@ import pet.project.sudokusolver.domain.SudokuGrid
 data class InputChoiceState(
     val isPhotoLoading: Boolean = false,
     val photoFailure: SudokuPhotoPickFailure? = null,
+    val wasPhotoCancelled: Boolean = false,
 )
 
 sealed interface InputChoiceIntent {
@@ -23,30 +24,43 @@ sealed interface InputChoiceEffect {
     data class NavigateToBoard(val grid: SudokuGrid) : InputChoiceEffect
 }
 
-class InputChoiceViewModel(
-    private val photoPicker: SudokuPhotoPicker,
-) : ViewModel() {
+class InputChoiceViewModel : ViewModel() {
     var state by mutableStateOf(InputChoiceState())
         private set
 
     fun onIntent(
         intent: InputChoiceIntent,
+        photoPicker: SudokuPhotoPicker,
         onEffect: (InputChoiceEffect) -> Unit,
     ) {
         when (intent) {
             InputChoiceIntent.ManualInputClicked -> {
-                state = state.copy(photoFailure = null)
+                if (state.isPhotoLoading) return
+                state = state.copy(photoFailure = null, wasPhotoCancelled = false)
                 onEffect(InputChoiceEffect.NavigateToBoard(SudokuGrid.Empty))
             }
 
             InputChoiceIntent.PhotoInputClicked -> {
-                state = state.copy(isPhotoLoading = true, photoFailure = null)
+                if (state.isPhotoLoading) return
+                state = state.copy(
+                    isPhotoLoading = true,
+                    photoFailure = null,
+                    wasPhotoCancelled = false,
+                )
                 photoPicker.pickSudokuPhoto { result ->
                     state = state.copy(isPhotoLoading = false)
                     when (result) {
-                        SudokuPhotoPickResult.Cancelled -> Unit
-                        is SudokuPhotoPickResult.Failed -> state = state.copy(photoFailure = result.failure)
-                        is SudokuPhotoPickResult.Recognized -> onEffect(InputChoiceEffect.NavigateToBoard(result.grid))
+                        SudokuPhotoPickResult.Cancelled -> {
+                            state = state.copy(wasPhotoCancelled = true)
+                        }
+
+                        is SudokuPhotoPickResult.Failed -> {
+                            state = state.copy(photoFailure = result.failure)
+                        }
+
+                        is SudokuPhotoPickResult.Recognized -> {
+                            onEffect(InputChoiceEffect.NavigateToBoard(result.grid))
+                        }
                     }
                 }
             }
