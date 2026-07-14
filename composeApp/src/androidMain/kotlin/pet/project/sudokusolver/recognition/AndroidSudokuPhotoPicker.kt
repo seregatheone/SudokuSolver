@@ -119,14 +119,32 @@ fun interface AndroidSudokuImageRecognizer {
     fun recognize(image: AndroidSudokuImage): SudokuPhotoPickResult
 }
 
-class AndroidSudokuRecognitionRepository : AndroidSudokuImageRecognizer {
+class AndroidSudokuRecognitionRepository(
+    private val boardExtractor: AndroidSudokuBoardExtractor = AndroidSudokuBoardExtractor(),
+) : AndroidSudokuImageRecognizer {
     override fun recognize(image: AndroidSudokuImage): SudokuPhotoPickResult {
         check(!image.bitmap.isRecycled) { "Recognition requires live decoded pixels." }
 
-        // Replaced by the OpenCV/LiteRT pipeline in issues #4 and #5. The Android boundary
-        // intentionally accepts normalized pixels now, so those stages never need URI access.
-        return SudokuPhotoPickResult.Recognized(SampleRecognizedGrid)
+        return when (val result = boardExtractor.extract(image.bitmap)) {
+            is AndroidSudokuBoardExtractionResult.Extracted -> result.board.use {
+                // Issue #5 replaces this fixture grid with LiteRT inference over the 81 crops.
+                SudokuPhotoPickResult.Recognized(SampleRecognizedGrid)
+            }
+
+            is AndroidSudokuBoardExtractionResult.Failed -> SudokuPhotoPickResult.Failed(
+                result.failure.toPhotoPickFailure(),
+            )
+        }
     }
+}
+
+private fun AndroidSudokuBoardFailure.toPhotoPickFailure(): SudokuPhotoPickFailure = when (this) {
+    AndroidSudokuBoardFailure.NativeRuntimeUnavailable ->
+        SudokuPhotoPickFailure.NativeProcessingUnavailable
+    AndroidSudokuBoardFailure.ImageTooSmall -> SudokuPhotoPickFailure.ImageTooSmall
+    AndroidSudokuBoardFailure.BoardNotFound -> SudokuPhotoPickFailure.BoardNotFound
+    AndroidSudokuBoardFailure.InvalidGeometry -> SudokuPhotoPickFailure.InvalidBoardGeometry
+    AndroidSudokuBoardFailure.ProcessingFailed -> SudokuPhotoPickFailure.RecognitionFailed
 }
 
 private val SampleRecognizedGrid = SudokuGrid.fromRows(

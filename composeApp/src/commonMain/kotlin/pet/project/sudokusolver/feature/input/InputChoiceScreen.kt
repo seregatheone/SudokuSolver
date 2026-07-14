@@ -125,5 +125,11 @@ fun InputChoiceScreen(
 private fun photoFailureText(failure: SudokuPhotoPickFailure): String = when (failure) {
     SudokuPhotoPickFailure.Unavailable -> stringResource(Res.string.photo_error_unavailable)
     SudokuPhotoPickFailure.DecodeFailed -> stringResource(Res.string.photo_error_decode_failed)
+    SudokuPhotoPickFailure.NativeProcessingUnavailable ->
+        stringResource(Res.string.photo_error_native_processing_unavailable)
+    SudokuPhotoPickFailure.ImageTooSmall -> stringResource(Res.string.photo_error_image_too_small)
+    SudokuPhotoPickFailure.BoardNotFound -> stringResource(Res.string.photo_error_board_not_found)
+    SudokuPhotoPickFailure.InvalidBoardGeometry ->
+        stringResource(Res.string.photo_error_invalid_board_geometry)
     SudokuPhotoPickFailure.RecognitionFailed -> stringResource(Res.string.photo_error_recognition_failed)
 }
