@@ -133,3 +133,179 @@ internal object TwoStringKiteStrategy : SudokuStrategy {
     private fun shareBox(first: Int, second: Int): Boolean =
         first.row() / 3 == second.row() / 3 && first.column() / 3 == second.column() / 3
 }
+
+internal object XChainStrategy : SudokuStrategy {
+    override val pattern: SudokuSolvingPattern = SudokuSolvingPattern.XChain
+
+    override fun findStep(state: SudokuBoardState): SudokuSolutionStep? {
+        for (value in 1..9) {
+            val strongLinks = sudokuUnits()
+                .mapNotNull { unit ->
+                    unit.filter { index ->
+                        state.board[index] == 0 && value in state.candidates[index]
+                    }.takeIf { it.size == 2 }
+                }
+                .distinct()
+
+            for ((firstLink, secondLink) in strongLinks.combinations(2)) {
+                if (firstLink.any { it in secondLink }) continue
+
+                for (firstBridge in firstLink) {
+                    for (secondBridge in secondLink) {
+                        if (secondBridge !in SudokuRules.peerIndexes(firstBridge)) continue
+
+                        val firstEnd = firstLink.single { it != firstBridge }
+                        val secondEnd = secondLink.single { it != secondBridge }
+                        val linkIndexes = firstLink + secondLink
+                        val eliminations = SudokuRules.peerIndexes(firstEnd)
+                            .intersect(SudokuRules.peerIndexes(secondEnd))
+                            .filter { index ->
+                                index !in linkIndexes &&
+                                    state.board[index] == 0 &&
+                                    value in state.candidates[index]
+                            }
+                            .sorted()
+                            .map { index ->
+                                CandidateElimination(
+                                    row = index.row(),
+                                    column = index.column(),
+                                    values = setOf(value),
+                                )
+                            }
+
+                        SudokuStepFactory.elimination(
+                            pattern = pattern,
+                            relatedIndexes = linkIndexes,
+                            eliminations = eliminations,
+                        )?.let { return it }
+                    }
+                }
+            }
+        }
+        return null
+    }
+}
+
+internal object EmptyRectangleStrategy : SudokuStrategy {
+    override val pattern: SudokuSolvingPattern = SudokuSolvingPattern.EmptyRectangle
+
+    override fun findStep(state: SudokuBoardState): SudokuSolutionStep? {
+        for (value in 1..9) {
+            for (box in sudokuBoxes()) {
+                val boxCandidates = box.filter { index ->
+                    state.board[index] == 0 && value in state.candidates[index]
+                }
+                if (boxCandidates.size < 3) continue
+
+                val boxRows = box.map { it.row() }.distinct()
+                val boxColumns = box.map { it.column() }.distinct()
+                for (emptyRectangleRow in boxRows) {
+                    for (emptyRectangleColumn in boxColumns) {
+                        if (
+                            boxCandidates.any { index ->
+                                index.row() != emptyRectangleRow && index.column() != emptyRectangleColumn
+                            }
+                        ) {
+                            continue
+                        }
+                        val rowArm = boxCandidates.filter { index ->
+                            index.row() == emptyRectangleRow && index.column() != emptyRectangleColumn
+                        }
+                        val columnArm = boxCandidates.filter { index ->
+                            index.column() == emptyRectangleColumn && index.row() != emptyRectangleRow
+                        }
+                        if (rowArm.isEmpty() || columnArm.isEmpty()) continue
+
+                        findUsingRowArm(
+                            state = state,
+                            value = value,
+                            box = box,
+                            emptyRectangleRow = emptyRectangleRow,
+                            emptyRectangleColumn = emptyRectangleColumn,
+                            boxCandidates = boxCandidates,
+                        )?.let { return it }
+                        findUsingColumnArm(
+                            state = state,
+                            value = value,
+                            box = box,
+                            emptyRectangleRow = emptyRectangleRow,
+                            emptyRectangleColumn = emptyRectangleColumn,
+                            boxCandidates = boxCandidates,
+                        )?.let { return it }
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun findUsingRowArm(
+        state: SudokuBoardState,
+        value: Int,
+        box: List<Int>,
+        emptyRectangleRow: Int,
+        emptyRectangleColumn: Int,
+        boxCandidates: List<Int>,
+    ): SudokuSolutionStep? {
+        val boxColumns = box.map { it.column() }.toSet()
+        for (linkColumn in 0 until SudokuGrid.Size) {
+            if (linkColumn in boxColumns) continue
+            val nearEnd = emptyRectangleRow * SudokuGrid.Size + linkColumn
+            val strongLink = sudokuColumns()[linkColumn].filter { index ->
+                state.board[index] == 0 && value in state.candidates[index]
+            }
+            if (strongLink.size != 2 || nearEnd !in strongLink) continue
+
+            val remoteEnd = strongLink.single { it != nearEnd }
+            if (remoteEnd.row() in box.map { it.row() }) continue
+            val target = remoteEnd.row() * SudokuGrid.Size + emptyRectangleColumn
+            val eliminations = target.takeIf { index ->
+                state.board[index] == 0 && value in state.candidates[index]
+            }?.let { index ->
+                listOf(CandidateElimination(index.row(), index.column(), setOf(value)))
+            }.orEmpty()
+
+            SudokuStepFactory.elimination(
+                pattern = pattern,
+                relatedIndexes = boxCandidates + strongLink,
+                eliminations = eliminations,
+            )?.let { return it }
+        }
+        return null
+    }
+
+    private fun findUsingColumnArm(
+        state: SudokuBoardState,
+        value: Int,
+        box: List<Int>,
+        emptyRectangleRow: Int,
+        emptyRectangleColumn: Int,
+        boxCandidates: List<Int>,
+    ): SudokuSolutionStep? {
+        val boxRows = box.map { it.row() }.toSet()
+        for (linkRow in 0 until SudokuGrid.Size) {
+            if (linkRow in boxRows) continue
+            val nearEnd = linkRow * SudokuGrid.Size + emptyRectangleColumn
+            val strongLink = sudokuRows()[linkRow].filter { index ->
+                state.board[index] == 0 && value in state.candidates[index]
+            }
+            if (strongLink.size != 2 || nearEnd !in strongLink) continue
+
+            val remoteEnd = strongLink.single { it != nearEnd }
+            if (remoteEnd.column() in box.map { it.column() }) continue
+            val target = emptyRectangleRow * SudokuGrid.Size + remoteEnd.column()
+            val eliminations = target.takeIf { index ->
+                state.board[index] == 0 && value in state.candidates[index]
+            }?.let { index ->
+                listOf(CandidateElimination(index.row(), index.column(), setOf(value)))
+            }.orEmpty()
+
+            SudokuStepFactory.elimination(
+                pattern = pattern,
+                relatedIndexes = boxCandidates + strongLink,
+                eliminations = eliminations,
+            )?.let { return it }
+        }
+        return null
+    }
+}
