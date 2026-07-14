@@ -53,6 +53,9 @@ The diagnostic fields `firstIncorrectStep`, `firstIncorrectElimination`, and
 backtracking solution. They distinguish a missing strategy from an unsound
 existing strategy.
 
+The latest advanced-pattern catalog comparison is recorded in
+[`advanced-patterns-report.md`](advanced-patterns-report.md).
+
 ## File issues in resumable batches
 
 Preview the next batch:

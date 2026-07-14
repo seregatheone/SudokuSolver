@@ -13,7 +13,11 @@ class SudokuSolver {
         return SudokuStrategyRegistry.strategyFor(pattern)?.findStep(state)
     }
 
-    fun supportedPatterns(): List<SudokuSolvingPattern> = SudokuStrategyRegistry.patternOrder
+    fun catalogPatterns(): List<SudokuSolvingPattern> = SudokuSolvingPattern.entries
+
+    fun supportedPatterns(): List<SudokuSolvingPattern> = SudokuStrategyRegistry.executablePatterns
+
+    fun automaticPatterns(): List<SudokuSolvingPattern> = SudokuStrategyRegistry.automaticSearchOrder
 
     private fun solveInternal(grid: SudokuGrid): SudokuSolveResult {
         val validation = grid.validate()
