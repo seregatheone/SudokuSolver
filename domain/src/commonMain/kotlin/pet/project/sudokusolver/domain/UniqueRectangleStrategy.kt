@@ -8,10 +8,11 @@ internal object UniqueRectangleStrategy : SudokuStrategy {
             for (columnPair in (0 until SudokuGrid.Size).toList().combinations(2)) {
                 val indexes = rowPair.flatMap { row -> columnPair.map { column -> row * SudokuGrid.Size + column } }
                 if (indexes.any { state.board[it] != 0 }) continue
+                if (indexes.map(::boxIndex).distinct().size != 2) continue
 
                 val pairs = indexes.filter { state.candidates[it].size == 2 }
                 if (pairs.size != 3) continue
-                val pairValues = pairs.map { state.candidates[it] }.distinct().singleOrNull() ?: continue
+                val pairValues = pairs.map { state.candidates[it].toSet() }.distinct().singleOrNull() ?: continue
                 val extraIndex = indexes.first { it !in pairs }
                 if (!state.candidates[extraIndex].containsAll(pairValues) || state.candidates[extraIndex].size <= 2) continue
 
@@ -21,4 +22,6 @@ internal object UniqueRectangleStrategy : SudokuStrategy {
         }
         return null
     }
+
+    private fun boxIndex(index: Int): Int = index.row() / 3 * 3 + index.column() / 3
 }
