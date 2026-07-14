@@ -1,0 +1,17 @@
+top1465 corpus report
+source=http://magictour.free.fr/top1465
+sha256=32837f38ece94e75678deadbe256aeafda704c8d4c2f8b5095a630ce2d0114d3
+processed=1465
+unique=1460
+multiple=0
+invalid=0
+unsolvable=5
+baselineUnique=1465
+baselineMultiple=0
+baselineUnsolvable=0
+incorrectLogicalPlacements=5
+incorrectCandidateEliminations=4
+incorrectCandidateLosses=5
+logicallySolved=369
+logicallyStalled=1096
+elapsedMs=44478
