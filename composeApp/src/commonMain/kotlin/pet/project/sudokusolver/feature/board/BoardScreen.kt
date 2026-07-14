@@ -3,6 +3,7 @@ package pet.project.sudokusolver.feature.board
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -25,12 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import pet.project.sudokusolver.domain.SolutionMode
 import pet.project.sudokusolver.domain.SudokuGrid
 import pet.project.sudokusolver.ui.SudokuTheme
+import pet.project.sudokusolver.ui.boardWidthForViewport
+import pet.project.sudokusolver.ui.useDenseBoardControls
 import pet.project.sudokusolver.ui.useWideBoardLayout
 import sudokusolver.composeapp.generated.resources.Res
 import sudokusolver.composeapp.generated.resources.board_hint
@@ -52,11 +54,12 @@ fun BoardScreen(
                 .fillMaxSize()
                 .safeContentPadding(),
         ) {
-            if (useWideBoardLayout(maxWidth.value)) {
+            if (useWideBoardLayout(maxWidth.value, maxHeight.value)) {
                 WideBoardContent(
                     state = state,
                     onIntent = onIntent,
                     onBack = onBack,
+                    denseControls = useDenseBoardControls(maxHeight.value),
                 )
             } else {
                 CompactBoardContent(
@@ -78,8 +81,7 @@ private fun CompactBoardContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BoardToolbar(
@@ -87,22 +89,44 @@ private fun CompactBoardContent(
             onBack = onBack,
             onClear = { onIntent(BoardIntent.ClearClicked) },
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(4.dp))
+        BoardViewport(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            state = state,
+            onIntent = onIntent,
+        )
+        Spacer(Modifier.height(4.dp))
+        BoardControlsPanel(
+            modifier = Modifier.widthIn(max = 680.dp),
+            state = state,
+            onIntent = onIntent,
+            dense = true,
+        )
+    }
+}
+
+@Composable
+private fun BoardViewport(
+    modifier: Modifier,
+    state: BoardState,
+    onIntent: (BoardIntent) -> Unit,
+) {
+    BoxWithConstraints(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
         SudokuBoard(
-            modifier = Modifier,
+            modifier = Modifier.width(
+                boardWidthForViewport(maxWidth.value, maxHeight.value).dp,
+            ),
             grid = state.grid,
             selectedCell = state.selectedCell,
             highlightedValue = state.highlightedValue,
             patternStep = (state.status as? BoardStatus.StepApplied)?.step,
             onCellSelected = { onIntent(BoardIntent.CellSelected(it)) },
         )
-        Spacer(Modifier.height(16.dp))
-        BoardControlsPanel(
-            modifier = Modifier.widthIn(max = 680.dp),
-            state = state,
-            onIntent = onIntent,
-        )
-        Spacer(Modifier.height(12.dp))
     }
 }
 
@@ -111,20 +135,35 @@ private fun WideBoardContent(
     state: BoardState,
     onIntent: (BoardIntent) -> Unit,
     onBack: () -> Unit,
+    denseControls: Boolean,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        BoardToolbar(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .widthIn(max = 1120.dp)
                 .align(Alignment.CenterHorizontally),
-            onBack = onBack,
-            onClear = { onIntent(BoardIntent.ClearClicked) },
-        )
+        ) {
+            BoardToolbar(
+                modifier = Modifier.fillMaxWidth(),
+                onBack = onBack,
+                onClear = { onIntent(BoardIntent.ClearClicked) },
+            )
+            if (denseControls) {
+                BoardStatusCard(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(start = 72.dp, end = 112.dp)
+                        .fillMaxWidth(),
+                    status = state.status,
+                    dense = true,
+                )
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Row(
             modifier = Modifier
@@ -132,38 +171,30 @@ private fun WideBoardContent(
                 .weight(1f)
                 .widthIn(max = 1120.dp)
                 .align(Alignment.CenterHorizontally),
-            horizontalArrangement = Arrangement.spacedBy(28.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (denseControls) 16.dp else 28.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            Column(
+            BoardViewport(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                SudokuBoard(
-                    modifier = Modifier,
-                    grid = state.grid,
-                    selectedCell = state.selectedCell,
-                    highlightedValue = state.highlightedValue,
-                    patternStep = (state.status as? BoardStatus.StepApplied)?.step,
-                    onCellSelected = { onIntent(BoardIntent.CellSelected(it)) },
-                )
-                Spacer(Modifier.height(12.dp))
-            }
+                    .fillMaxHeight(),
+                state = state,
+                onIntent = onIntent,
+            )
             Column(
                 modifier = Modifier
-                    .width(360.dp)
+                    .width(if (denseControls) 300.dp else 360.dp)
                     .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
+                    .padding(bottom = 4.dp),
+                verticalArrangement = Arrangement.Center,
             ) {
                 BoardControlsPanel(
                     modifier = Modifier.fillMaxWidth(),
                     state = state,
                     onIntent = onIntent,
+                    dense = denseControls,
+                    showStatus = !denseControls,
                 )
-                Spacer(Modifier.height(12.dp))
             }
         }
     }
@@ -174,28 +205,36 @@ private fun BoardControlsPanel(
     modifier: Modifier,
     state: BoardState,
     onIntent: (BoardIntent) -> Unit,
+    dense: Boolean,
+    showStatus: Boolean = true,
 ) {
+    val sectionSpacing = if (dense) 6.dp else 14.dp
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        BoardStatusCard(
-            modifier = Modifier.fillMaxWidth(),
-            status = state.status,
-        )
-        Spacer(Modifier.height(14.dp))
+        if (showStatus) {
+            BoardStatusCard(
+                modifier = Modifier.fillMaxWidth(),
+                status = state.status,
+                dense = dense,
+            )
+            Spacer(Modifier.height(sectionSpacing))
+        }
         ModeChooser(
             enabled = state.grid.hasAnyValue(),
             selectedMode = state.selectedMode,
             onModeSelected = { onIntent(BoardIntent.SolutionModeSelected(it)) },
+            dense = dense,
         )
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(sectionSpacing))
         NumberPad(
             hasSelectedCell = state.selectedCell != null,
             allowedValues = state.allowedValues,
             onValueSelected = { onIntent(BoardIntent.ValueSelected(it)) },
+            dense = dense,
         )
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(sectionSpacing))
         InputTools(
             enabled = state.selectedCell != null,
             isPencilMode = state.isPencilMode,
@@ -204,7 +243,7 @@ private fun BoardControlsPanel(
         )
 
         if (state.selectedMode == SolutionMode.StepByStep && state.steps.isNotEmpty()) {
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(sectionSpacing))
             StepControls(
                 nextStepIndex = state.nextStepIndex,
                 stepCount = state.steps.size,
@@ -214,7 +253,7 @@ private fun BoardControlsPanel(
         }
 
         if (state.selectedMode == SolutionMode.SelfPractice) {
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(sectionSpacing))
             OutlinedButton(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -234,6 +273,7 @@ private fun BoardControlsPanel(
 private fun BoardStatusCard(
     modifier: Modifier,
     status: BoardStatus,
+    dense: Boolean,
 ) {
     val visual = when (status) {
         BoardStatus.SolveFailed,
@@ -270,21 +310,26 @@ private fun BoardStatusCard(
         border = BorderStroke(1.dp, visual.second.copy(alpha = 0.18f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top,
+            modifier = Modifier.padding(
+                horizontal = if (dense) 12.dp else 16.dp,
+                vertical = if (dense) 8.dp else 14.dp,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(if (dense) 8.dp else 12.dp),
+            verticalAlignment = if (dense) Alignment.CenterVertically else Alignment.Top,
         ) {
             Text(
                 text = visual.third,
                 color = visual.second,
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium,
+                style = if (dense) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
             )
             Text(
                 modifier = Modifier.weight(1f),
                 text = statusText(status),
                 color = visual.second,
-                style = MaterialTheme.typography.bodyMedium,
+                style = if (dense) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                maxLines = if (dense) 2 else Int.MAX_VALUE,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -294,6 +339,18 @@ private fun BoardStatusCard(
 @Composable
 private fun BoardCompactPreview() {
     SudokuTheme(darkTheme = true) {
+        BoardScreen(
+            state = BoardState(grid = SudokuGrid.Empty),
+            onIntent = {},
+            onBack = {},
+        )
+    }
+}
+
+@Preview(name = "Board compact short", widthDp = 360, heightDp = 640)
+@Composable
+private fun BoardCompactShortPreview() {
+    SudokuTheme(darkTheme = false) {
         BoardScreen(
             state = BoardState(grid = SudokuGrid.Empty),
             onIntent = {},

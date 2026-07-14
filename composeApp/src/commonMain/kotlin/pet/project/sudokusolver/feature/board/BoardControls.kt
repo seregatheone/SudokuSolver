@@ -134,17 +134,20 @@ internal fun NumberPad(
     hasSelectedCell: Boolean,
     allowedValues: Set<Int>,
     onValueSelected: (Int?) -> Unit,
+    dense: Boolean = false,
 ) {
+    val spacing = if (dense) 6.dp else 8.dp
+    val rowSize = if (dense) 5 else 3
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 420.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
-        (1..9).chunked(3).forEach { rowValues ->
+        (1..9).chunked(rowSize).forEach { rowValues ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(spacing),
             ) {
                 rowValues.forEach { value ->
                     OutlinedButton(
@@ -172,12 +175,15 @@ internal fun ModeChooser(
     enabled: Boolean,
     selectedMode: SolutionMode?,
     onModeSelected: (SolutionMode) -> Unit,
+    dense: Boolean = false,
 ) {
+    val spacing = if (dense) 4.dp else 8.dp
+    val controlHeight = if (dense) 48.dp else 52.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 640.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
         Text(
             text = stringResource(Res.string.board_solution_mode),
@@ -192,6 +198,7 @@ internal fun ModeChooser(
                 enabled = enabled,
                 selected = selectedMode == SolutionMode.Fast,
                 onClick = { onModeSelected(SolutionMode.Fast) },
+                height = controlHeight,
             )
             ModeButton(
                 modifier = Modifier.weight(1f),
@@ -199,6 +206,7 @@ internal fun ModeChooser(
                 enabled = enabled,
                 selected = selectedMode == SolutionMode.StepByStep,
                 onClick = { onModeSelected(SolutionMode.StepByStep) },
+                height = controlHeight,
             )
             ModeButton(
                 modifier = Modifier.weight(1f),
@@ -206,6 +214,7 @@ internal fun ModeChooser(
                 enabled = enabled,
                 selected = selectedMode == SolutionMode.SelfPractice,
                 onClick = { onModeSelected(SolutionMode.SelfPractice) },
+                height = controlHeight,
             )
         }
     }
@@ -218,11 +227,12 @@ private fun ModeButton(
     enabled: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
+    height: androidx.compose.ui.unit.Dp,
 ) {
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Surface(
         modifier = modifier
-            .height(52.dp)
+            .height(height)
             .clickable(enabled = enabled, onClick = onClick),
         shape = MaterialTheme.shapes.small,
         color = container,
