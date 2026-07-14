@@ -354,6 +354,7 @@ enum class SudokuSolvingPattern {
     UniqueRectangle,
     SimpleColoring,
     MultiColoring,
+    RemotePair,
     XChain,
     XYChain,
     AlternatingInferenceChain,
