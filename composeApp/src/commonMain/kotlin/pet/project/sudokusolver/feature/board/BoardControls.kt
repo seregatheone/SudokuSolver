@@ -34,7 +34,9 @@ internal fun StepControls(
     stepCount: Int,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
+    dense: Boolean = false,
 ) {
+    val controlHeight = if (dense) 40.dp else 48.dp
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -44,7 +46,7 @@ internal fun StepControls(
         OutlinedButton(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp),
+                .height(controlHeight),
             enabled = nextStepIndex > 0,
             onClick = onPrevious,
             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -58,7 +60,7 @@ internal fun StepControls(
         Button(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp),
+                .height(controlHeight),
             enabled = nextStepIndex < stepCount,
             onClick = onNext,
             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -82,7 +84,9 @@ internal fun InputTools(
     isPencilMode: Boolean,
     onPencilModeToggle: () -> Unit,
     onDelete: () -> Unit,
+    dense: Boolean = false,
 ) {
+    val controlHeight = if (dense) 40.dp else 48.dp
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -92,7 +96,7 @@ internal fun InputTools(
         Surface(
             modifier = Modifier
                 .weight(1f)
-                .height(48.dp)
+                .height(controlHeight)
                 .clickable(enabled = enabled, onClick = onPencilModeToggle),
             shape = MaterialTheme.shapes.small,
             color = if (isPencilMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
@@ -115,7 +119,7 @@ internal fun InputTools(
         OutlinedButton(
             modifier = Modifier
                 .weight(2f)
-                .height(48.dp),
+                .height(controlHeight),
             enabled = enabled,
             shape = MaterialTheme.shapes.small,
             contentPadding = PaddingValues(0.dp),
@@ -136,15 +140,15 @@ internal fun NumberPad(
     onValueSelected: (Int?) -> Unit,
     dense: Boolean = false,
 ) {
-    val spacing = if (dense) 6.dp else 8.dp
-    val rowSize = if (dense) 5 else 3
+    val spacing = if (dense) 4.dp else 8.dp
+    val controlHeight = if (dense) 40.dp else 48.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .widthIn(max = 420.dp),
         verticalArrangement = Arrangement.spacedBy(spacing),
     ) {
-        (1..9).chunked(rowSize).forEach { rowValues ->
+        (1..9).chunked(3).forEach { rowValues ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -153,7 +157,7 @@ internal fun NumberPad(
                     OutlinedButton(
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp),
+                            .height(controlHeight),
                         enabled = !hasSelectedCell || value in allowedValues,
                         shape = MaterialTheme.shapes.small,
                         contentPadding = PaddingValues(0.dp),
@@ -178,7 +182,7 @@ internal fun ModeChooser(
     dense: Boolean = false,
 ) {
     val spacing = if (dense) 4.dp else 8.dp
-    val controlHeight = if (dense) 48.dp else 52.dp
+    val controlHeight = if (dense) 40.dp else 52.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
