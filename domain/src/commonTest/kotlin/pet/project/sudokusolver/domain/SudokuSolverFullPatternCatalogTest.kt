@@ -76,14 +76,14 @@ class SudokuSolverFullPatternCatalogTest {
     fun detectsUniqueRectangleAsCandidateEliminationStep() {
         val cells = MutableList(SudokuGrid.CellCount) { SudokuCell(notes = (1..9).toSet()) }
         cells[0] = SudokuCell(notes = setOf(1, 2))
-        cells[1] = SudokuCell(notes = setOf(1, 2))
+        cells[3] = SudokuCell(notes = setOf(1, 2))
         cells[9] = SudokuCell(notes = setOf(1, 2))
-        cells[10] = SudokuCell(notes = setOf(1, 2, 3))
+        cells[12] = SudokuCell(notes = setOf(1, 2, 3))
 
         val step = SudokuSolver().hintForPattern(SudokuGrid(cells), SudokuSolvingPattern.UniqueRectangle)
 
         assertNotNull(step)
         assertEquals(SudokuSolvingPattern.UniqueRectangle, step.pattern)
-        assertTrue(step.eliminations.any { it.row == 1 && it.column == 1 && it.values == setOf(1, 2) })
+        assertTrue(step.eliminations.any { it.row == 1 && it.column == 3 && it.values == setOf(1, 2) })
     }
 }
