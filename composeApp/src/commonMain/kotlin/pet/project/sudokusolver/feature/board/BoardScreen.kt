@@ -209,6 +209,7 @@ private fun BoardControlsPanel(
     showStatus: Boolean = true,
 ) {
     val sectionSpacing = if (dense) 6.dp else 14.dp
+    val controlHeight = if (dense) 40.dp else 48.dp
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -240,6 +241,7 @@ private fun BoardControlsPanel(
             isPencilMode = state.isPencilMode,
             onPencilModeToggle = { onIntent(BoardIntent.PencilModeToggled) },
             onDelete = { onIntent(BoardIntent.ValueSelected(null)) },
+            dense = dense,
         )
 
         if (state.selectedMode == SolutionMode.StepByStep && state.steps.isNotEmpty()) {
@@ -249,6 +251,7 @@ private fun BoardControlsPanel(
                 stepCount = state.steps.size,
                 onPrevious = { onIntent(BoardIntent.PreviousStepClicked) },
                 onNext = { onIntent(BoardIntent.NextStepClicked) },
+                dense = dense,
             )
         }
 
@@ -257,7 +260,7 @@ private fun BoardControlsPanel(
             OutlinedButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(controlHeight),
                 onClick = { onIntent(BoardIntent.HintClicked) },
             ) {
                 Text(
