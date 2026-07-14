@@ -83,6 +83,7 @@ internal object SudokuStrategyRegistry {
         MultiColoringStrategy,
         RemotePairStrategy,
         SueDeCoqStrategy,
+        ExocetStrategy,
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.FinnedXWing),
         FinnedFishStrategy(size = 2, pattern = SudokuSolvingPattern.SashimiXWing, requireSashimi = true),
         FinnedFishStrategy(size = 3, pattern = SudokuSolvingPattern.FinnedSwordfish),
