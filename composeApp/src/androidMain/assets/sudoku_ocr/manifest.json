@@ -1,0 +1,128 @@
+{
+  "bundle_id": "sudoku-cell-digit-classifier",
+  "empty_policy": {
+    "classifier_includes_empty": false,
+    "comparison": "digit_score < threshold => empty",
+    "component_connectivity": 8,
+    "detector": "opencv_connected_components_v1",
+    "digit_score_formula": "max_components(min(width_ratio / 0.08, height_ratio / 0.34, area_ratio / 0.012, 1.0))",
+    "digit_score_threshold": 0.9,
+    "minimum_component_area_formula": "max(3, round_ties_to_even(content_area * 0.0015))"
+  },
+  "input": {
+    "color_space": "grayscale",
+    "dtype": "float32",
+    "foreground": "white_on_black",
+    "layout": "NHWC",
+    "name": "serving_default_cell_image:0",
+    "normalization": {
+      "formula": "value / 255.0",
+      "source_dtype": "uint8",
+      "source_range": [
+        0.0,
+        255.0
+      ],
+      "target_range": [
+        0.0,
+        1.0
+      ]
+    },
+    "producer": {
+      "background_border_pixels_formula": "max(1, round_ties_to_even(min(content_width, content_height) * background_border_ratio))",
+      "background_border_ratio": 0.1,
+      "background_statistic": "per_channel_median_rgb",
+      "border_clear_pixels": 1,
+      "cell_border_inset_pixels_formula": "round_ties_to_even(min(cell_width, cell_height) * cell_border_inset_ratio)",
+      "cell_border_inset_ratio": 0.1,
+      "contract": "opencv_cell_foreground_v1",
+      "distance_metric": "max_absolute_rgb_channel_difference",
+      "minimum_threshold": 12.0,
+      "threshold_comparison": "distance >= max(otsu, minimum)",
+      "threshold_method": "otsu_with_minimum"
+    },
+    "resize": {
+      "height": 28,
+      "interpolation": "area",
+      "width": 28
+    },
+    "shape": [
+      1,
+      28,
+      28,
+      1
+    ],
+    "source_artifact": "normalized_foreground_mask"
+  },
+  "model": {
+    "file": "digit_classifier-fd75d718e72265c2e38b436b2ac96282ffc8ae3ba2463788a4df52f8448e0ef9.tflite",
+    "flatbuffer_schema_version": 3,
+    "format": "tflite",
+    "minimum_runtime_version": "1.5.0",
+    "operator_set": "TFLITE_BUILTINS",
+    "operator_versions": [
+      {
+        "name": "CONV_2D",
+        "version": 1
+      },
+      {
+        "name": "FULLY_CONNECTED",
+        "version": 1
+      },
+      {
+        "name": "MAX_POOL_2D",
+        "version": 1
+      },
+      {
+        "name": "RESHAPE",
+        "version": 1
+      }
+    ],
+    "operators": [
+      "CONV_2D",
+      "FULLY_CONNECTED",
+      "MAX_POOL_2D",
+      "RESHAPE"
+    ],
+    "sha256": "fd75d718e72265c2e38b436b2ac96282ffc8ae3ba2463788a4df52f8448e0ef9",
+    "size_bytes": 426668
+  },
+  "model_version": "1.1.0",
+  "output": {
+    "class_mapping": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "confidence": {
+      "minimum": 0.75,
+      "transform": "softmax"
+    },
+    "dtype": "float32",
+    "name": "StatefulPartitionedCall_1:0",
+    "semantics": "logits",
+    "shape": [
+      1,
+      9
+    ]
+  },
+  "reference_vectors": {
+    "absolute_tolerance": 0.0001,
+    "count": 9,
+    "file": "reference_vectors-0db0166fb7d4c49ebc4294a6c8470fc2fa8fee2c9a465084900e3dd23ea8f78e.json",
+    "input_stage": "normalized_foreground_mask",
+    "sha256": "0db0166fb7d4c49ebc4294a6c8470fc2fa8fee2c9a465084900e3dd23ea8f78e",
+    "size_bytes": 14027
+  },
+  "schema_version": "1.0.0",
+  "training_report": {
+    "file": "training_report-10c582b59d3ab2c3f3200d663c2bd13b77d9cbdc1fafacfab76f5a4c66b56724.json",
+    "sha256": "10c582b59d3ab2c3f3200d663c2bd13b77d9cbdc1fafacfab76f5a4c66b56724",
+    "size_bytes": 795
+  }
+}

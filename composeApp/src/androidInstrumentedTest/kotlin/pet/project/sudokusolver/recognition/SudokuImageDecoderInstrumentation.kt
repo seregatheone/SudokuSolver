@@ -33,9 +33,10 @@ class SudokuImageDecoderInstrumentation : Instrumentation() {
             val geometrySummary = SudokuBoardGeometryChecks().runAll(
                 testArguments?.getString("fixtureRoot"),
             )
+            val ocrSummary = AndroidSudokuOcrChecks(this).runAll()
             result.putString(
                 "summary",
-                "JPEG, PNG, EXIF, bounded decode, $geometrySummary and recognizer handoff: PASS",
+                "JPEG, PNG, EXIF, bounded decode, $geometrySummary, $ocrSummary: PASS",
             )
             finish(Activity.RESULT_OK, result)
         } catch (error: Throwable) {

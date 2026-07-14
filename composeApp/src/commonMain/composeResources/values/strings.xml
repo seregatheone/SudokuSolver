@@ -11,6 +11,9 @@
     <string name="photo_error_image_too_small">The image is too small to detect a Sudoku board.</string>
     <string name="photo_error_board_not_found">Could not find a Sudoku board in the image.</string>
     <string name="photo_error_invalid_board_geometry">The detected board could not be split into 81 cells.</string>
+    <string name="photo_error_model_unavailable">The Sudoku recognition model is unavailable on this device.</string>
+    <string name="photo_error_model_incompatible">The installed Sudoku recognition model is incompatible with this app version.</string>
+    <string name="photo_error_model_integrity_failed">The Sudoku recognition model is damaged. Reinstall the app and try again.</string>
     <string name="photo_error_recognition_failed">Could not recognize a Sudoku grid in the photo.</string>
 
     <string name="board_back_symbol">‹</string>
