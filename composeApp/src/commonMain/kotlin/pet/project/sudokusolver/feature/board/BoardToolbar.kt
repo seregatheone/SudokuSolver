@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,38 +22,38 @@ import sudokusolver.composeapp.generated.resources.board_clear
 
 @Composable
 internal fun BoardToolbar(
+    modifier: Modifier = Modifier,
     onBack: () -> Unit,
     onClear: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .widthIn(max = 680.dp)
-            .height(38.dp),
+            .height(48.dp),
     ) {
         IconButton(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .size(38.dp),
+                .size(48.dp),
             onClick = onBack,
         ) {
             Text(
                 text = stringResource(Res.string.board_back_symbol),
-                fontSize = 28.sp,
+                fontSize = 30.sp,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
         OutlinedButton(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .height(32.dp),
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                .height(40.dp),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
             onClick = onClear,
         ) {
             Text(
                 text = stringResource(Res.string.board_clear),
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }

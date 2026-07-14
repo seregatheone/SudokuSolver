@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -37,26 +36,32 @@ internal fun StepControls(
     onNext: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.widthIn(max = 420.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 420.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         OutlinedButton(
             modifier = Modifier
                 .weight(1f)
-                .height(34.dp),
+                .height(48.dp),
             enabled = nextStepIndex > 0,
             onClick = onPrevious,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp),
         ) {
-            Text(stringResource(Res.string.board_previous_step), fontSize = 12.sp)
+            Text(
+                text = stringResource(Res.string.board_previous_step),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
         Button(
             modifier = Modifier
                 .weight(1f)
-                .height(34.dp),
+                .height(48.dp),
             enabled = nextStepIndex < stepCount,
             onClick = onNext,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp),
         ) {
             Text(
                 if (nextStepIndex < stepCount) {
@@ -64,8 +69,8 @@ internal fun StepControls(
                 } else {
                     stringResource(Res.string.board_all_steps_done)
                 },
-                fontSize = 12.sp,
                 textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelMedium,
             )
         }
     }
@@ -79,21 +84,27 @@ internal fun InputTools(
     onDelete: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.widthIn(max = 420.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 420.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Surface(
             modifier = Modifier
                 .weight(1f)
-                .height(30.dp)
+                .height(48.dp)
                 .clickable(enabled = enabled, onClick = onPencilModeToggle),
-            shape = RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.small,
             color = if (isPencilMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = stringResource(Res.string.board_pencil_symbol),
+                    text = if (isPencilMode) {
+                        "✓ ${stringResource(Res.string.board_pencil_symbol)}"
+                    } else {
+                        stringResource(Res.string.board_pencil_symbol)
+                    },
                     color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
                     fontSize = 17.sp,
                     fontWeight = if (isPencilMode) FontWeight.SemiBold else FontWeight.Normal,
@@ -104,13 +115,16 @@ internal fun InputTools(
         OutlinedButton(
             modifier = Modifier
                 .weight(2f)
-                .height(30.dp),
+                .height(48.dp),
             enabled = enabled,
-            shape = RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.small,
             contentPadding = PaddingValues(0.dp),
             onClick = onDelete,
         ) {
-            Text(stringResource(Res.string.board_delete_digit), fontSize = 11.sp)
+            Text(
+                text = stringResource(Res.string.board_delete_digit),
+                style = MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }
@@ -122,25 +136,30 @@ internal fun NumberPad(
     onValueSelected: (Int?) -> Unit,
 ) {
     Column(
-        modifier = Modifier.widthIn(max = 420.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 420.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         (1..9).chunked(3).forEach { rowValues ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 rowValues.forEach { value ->
                     OutlinedButton(
                         modifier = Modifier
                             .weight(1f)
-                            .height(36.dp),
+                            .height(48.dp),
                         enabled = !hasSelectedCell || value in allowedValues,
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.small,
                         contentPadding = PaddingValues(0.dp),
                         onClick = { onValueSelected(value) },
                     ) {
-                        Text(value.toString(), fontSize = 14.sp)
+                        Text(
+                            text = value.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
                     }
                 }
             }
@@ -155,8 +174,10 @@ internal fun ModeChooser(
     onModeSelected: (SolutionMode) -> Unit,
 ) {
     Column(
-        modifier = Modifier.widthIn(max = 640.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 640.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = stringResource(Res.string.board_solution_mode),
@@ -164,7 +185,7 @@ internal fun ModeChooser(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ModeButton(
                 modifier = Modifier.weight(1f),
                 text = stringResource(Res.string.solution_mode_fast),
@@ -201,20 +222,23 @@ private fun ModeButton(
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Surface(
         modifier = modifier
-            .height(40.dp)
+            .height(52.dp)
             .clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         color = container,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+        border = BorderStroke(
+            if (selected) 2.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        ),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 modifier = Modifier.padding(horizontal = 4.dp),
-                text = text,
+                text = if (selected) "✓ $text" else text,
                 textAlign = TextAlign.Center,
                 color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-                fontSize = 12.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                style = MaterialTheme.typography.labelMedium,
             )
         }
     }
