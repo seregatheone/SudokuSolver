@@ -208,8 +208,8 @@ private fun BoardControlsPanel(
     dense: Boolean,
     showStatus: Boolean = true,
 ) {
-    val sectionSpacing = if (dense) 6.dp else 14.dp
-    val controlHeight = if (dense) 40.dp else 48.dp
+    val sectionSpacing = if (dense) 4.dp else 14.dp
+    val controlHeight = if (dense) 36.dp else 48.dp
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -229,20 +229,42 @@ private fun BoardControlsPanel(
             dense = dense,
         )
         Spacer(Modifier.height(sectionSpacing))
-        NumberPad(
-            hasSelectedCell = state.selectedCell != null,
-            allowedValues = state.allowedValues,
-            onValueSelected = { onIntent(BoardIntent.ValueSelected(it)) },
-            dense = dense,
-        )
-        Spacer(Modifier.height(sectionSpacing))
-        InputTools(
-            enabled = state.selectedCell != null,
-            isPencilMode = state.isPencilMode,
-            onPencilModeToggle = { onIntent(BoardIntent.PencilModeToggled) },
-            onDelete = { onIntent(BoardIntent.ValueSelected(null)) },
-            dense = dense,
-        )
+        if (dense) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                NumberPad(
+                    modifier = Modifier.weight(1f),
+                    hasSelectedCell = state.selectedCell != null,
+                    allowedValues = state.allowedValues,
+                    onValueSelected = { onIntent(BoardIntent.ValueSelected(it)) },
+                    dense = true,
+                )
+                InputTools(
+                    modifier = Modifier.width(88.dp),
+                    enabled = state.selectedCell != null,
+                    isPencilMode = state.isPencilMode,
+                    onPencilModeToggle = { onIntent(BoardIntent.PencilModeToggled) },
+                    onDelete = { onIntent(BoardIntent.ValueSelected(null)) },
+                    dense = true,
+                )
+            }
+        } else {
+            NumberPad(
+                hasSelectedCell = state.selectedCell != null,
+                allowedValues = state.allowedValues,
+                onValueSelected = { onIntent(BoardIntent.ValueSelected(it)) },
+            )
+            Spacer(Modifier.height(sectionSpacing))
+            InputTools(
+                enabled = state.selectedCell != null,
+                isPencilMode = state.isPencilMode,
+                onPencilModeToggle = { onIntent(BoardIntent.PencilModeToggled) },
+                onDelete = { onIntent(BoardIntent.ValueSelected(null)) },
+            )
+        }
 
         if (state.selectedMode == SolutionMode.StepByStep && state.steps.isNotEmpty()) {
             Spacer(Modifier.height(sectionSpacing))
