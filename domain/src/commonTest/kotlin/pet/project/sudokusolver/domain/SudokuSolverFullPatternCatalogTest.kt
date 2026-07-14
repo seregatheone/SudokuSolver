@@ -32,6 +32,7 @@ class SudokuSolverFullPatternCatalogTest {
             SudokuSolvingPattern.UniqueRectangle,
             SudokuSolvingPattern.SimpleColoring,
             SudokuSolvingPattern.MultiColoring,
+            SudokuSolvingPattern.RemotePair,
             SudokuSolvingPattern.XChain,
             SudokuSolvingPattern.XYChain,
             SudokuSolvingPattern.AlternatingInferenceChain,

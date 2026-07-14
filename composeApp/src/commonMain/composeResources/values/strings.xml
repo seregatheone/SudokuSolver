@@ -63,6 +63,7 @@
     <string name="pattern_unique_rectangle">Unique Rectangle</string>
     <string name="pattern_simple_coloring">Simple Coloring</string>
     <string name="pattern_multi_coloring">Multi-Coloring</string>
+    <string name="pattern_remote_pair">Remote Pair</string>
     <string name="pattern_x_chain">X-Chain</string>
     <string name="pattern_xy_chain">XY-Chain</string>
     <string name="pattern_aic">AIC</string>

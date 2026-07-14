@@ -5,6 +5,15 @@ import kotlin.test.assertTrue
 
 class Top1465LogicalRegressionTest {
     @Test
+    fun line45IsSolvedByXYChain() {
+        assertSolved(
+            lineNumber = 45,
+            givens = "7.....48....6.1..........2....3..6.52...8..............53.....1.6.1.........4.7..",
+            requiredPattern = SudokuSolvingPattern.XYChain,
+        )
+    }
+
+    @Test
     fun line158IsSolvedByRegisteredLogicalStrategies() {
         assertSolved(
             lineNumber = 158,
@@ -36,7 +45,7 @@ class Top1465LogicalRegressionTest {
         assertSolved(
             lineNumber = 810,
             givens = "..8....54...25.8.64..8....3.......2...9...7..71..4.5....798.........5...16...7...",
-            requiredPattern = SudokuSolvingPattern.SueDeCoq,
+            requiredPattern = SudokuSolvingPattern.XYChain,
         )
     }
 

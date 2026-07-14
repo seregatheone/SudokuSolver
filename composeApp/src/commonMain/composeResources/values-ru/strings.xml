@@ -63,6 +63,7 @@
     <string name="pattern_unique_rectangle">Уникальный прямоугольник</string>
     <string name="pattern_simple_coloring">Простая раскраска</string>
     <string name="pattern_multi_coloring">Мультираскраска</string>
+    <string name="pattern_remote_pair">Удалённая пара</string>
     <string name="pattern_x_chain">X-цепочка</string>
     <string name="pattern_xy_chain">XY-цепочка</string>
     <string name="pattern_aic">Чередующаяся цепочка выводов</string>
