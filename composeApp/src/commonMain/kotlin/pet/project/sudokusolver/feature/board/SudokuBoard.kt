@@ -34,6 +34,7 @@ import pet.project.sudokusolver.domain.SudokuSolutionStep
 
 @Composable
 internal fun SudokuBoard(
+    modifier: Modifier = Modifier,
     grid: SudokuGrid,
     selectedCell: CellPosition?,
     highlightedValue: Int?,
@@ -53,9 +54,9 @@ internal fun SudokuBoard(
     val patternRelatedCells = patternStep?.relatedCells.orEmpty().toSet()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = 680.dp),
+        modifier = modifier
+            .widthIn(max = 680.dp)
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Row(
@@ -172,10 +173,17 @@ private fun SudokuCellView(
     } else {
         MaterialTheme.colorScheme.primary
     }
+    val indicator = when {
+        isSelected -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        isPatternTarget -> BorderStroke(2.dp, MaterialTheme.colorScheme.tertiary)
+        isHighlighted -> BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+        else -> null
+    }
 
     Box(
         modifier = modifier
             .background(background)
+            .then(if (indicator == null) Modifier else Modifier.border(indicator))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -184,7 +192,11 @@ private fun SudokuCellView(
                 text = cell.value.toString(),
                 color = textColor,
                 fontSize = 20.sp,
-                fontWeight = if (cell.isGiven) FontWeight.SemiBold else FontWeight.Medium,
+                fontWeight = when {
+                    cell.isGiven -> FontWeight.Bold
+                    isSelected || isPatternTarget || isHighlighted -> FontWeight.SemiBold
+                    else -> FontWeight.Medium
+                },
                 textAlign = TextAlign.Center,
             )
         } else if (cell.notes.isNotEmpty()) {
