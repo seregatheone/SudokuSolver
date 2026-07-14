@@ -15,6 +15,10 @@ sealed interface SudokuPhotoPickResult {
 enum class SudokuPhotoPickFailure {
     Unavailable,
     DecodeFailed,
+    NativeProcessingUnavailable,
+    ImageTooSmall,
+    BoardNotFound,
+    InvalidBoardGeometry,
     RecognitionFailed,
 }
 

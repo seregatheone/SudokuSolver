@@ -15,8 +15,11 @@ import pet.project.sudokusolver.data.recognition.SudokuPhotoPickResult
 import pet.project.sudokusolver.domain.SudokuGrid
 
 class SudokuImageDecoderInstrumentation : Instrumentation() {
+    private var testArguments: Bundle? = null
+
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
+        testArguments = arguments
         start()
     }
 
@@ -27,7 +30,13 @@ class SudokuImageDecoderInstrumentation : Instrumentation() {
             verifyJpegExifRotation()
             verifyJpegExifMirror()
             verifyCorruptImageFailure()
-            result.putString("summary", "JPEG, PNG, EXIF, bounded decode and recognizer handoff: PASS")
+            val geometrySummary = SudokuBoardGeometryChecks().runAll(
+                testArguments?.getString("fixtureRoot"),
+            )
+            result.putString(
+                "summary",
+                "JPEG, PNG, EXIF, bounded decode, $geometrySummary and recognizer handoff: PASS",
+            )
             finish(Activity.RESULT_OK, result)
         } catch (error: Throwable) {
             result.putString("failure", error.stackTraceToString())

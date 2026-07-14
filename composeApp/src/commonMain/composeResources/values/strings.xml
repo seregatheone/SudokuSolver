@@ -7,6 +7,10 @@
     <string name="photo_cancelled">Photo selection was cancelled.</string>
     <string name="photo_error_unavailable">Photo picking is not available on this platform yet.</string>
     <string name="photo_error_decode_failed">Could not open this image. Choose a valid JPEG or PNG file.</string>
+    <string name="photo_error_native_processing_unavailable">Image processing is unavailable on this device.</string>
+    <string name="photo_error_image_too_small">The image is too small to detect a Sudoku board.</string>
+    <string name="photo_error_board_not_found">Could not find a Sudoku board in the image.</string>
+    <string name="photo_error_invalid_board_geometry">The detected board could not be split into 81 cells.</string>
     <string name="photo_error_recognition_failed">Could not recognize a Sudoku grid in the photo.</string>
 
     <string name="board_back_symbol">‹</string>
