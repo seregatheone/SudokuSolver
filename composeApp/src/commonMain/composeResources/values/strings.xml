@@ -4,7 +4,9 @@
     <string name="input_choice_subtitle">Choose how to enter the puzzle</string>
     <string name="input_manual">Manual input</string>
     <string name="input_photo">Photo</string>
+    <string name="photo_cancelled">Photo selection was cancelled.</string>
     <string name="photo_error_unavailable">Photo picking is not available on this platform yet.</string>
+    <string name="photo_error_decode_failed">Could not open this image. Choose a valid JPEG or PNG file.</string>
     <string name="photo_error_recognition_failed">Could not recognize a Sudoku grid in the photo.</string>
 
     <string name="board_back_symbol">‹</string>

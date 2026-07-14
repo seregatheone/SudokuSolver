@@ -4,7 +4,9 @@
     <string name="input_choice_subtitle">Выберите способ ввода головоломки</string>
     <string name="input_manual">Ввод руками</string>
     <string name="input_photo">Фотография</string>
+    <string name="photo_cancelled">Выбор фотографии отменён.</string>
     <string name="photo_error_unavailable">Выбор фотографии пока не подключен для этой платформы.</string>
+    <string name="photo_error_decode_failed">Не удалось открыть изображение. Выберите корректный JPEG или PNG.</string>
     <string name="photo_error_recognition_failed">Не удалось распознать судоку на фотографии.</string>
 
     <string name="board_back_symbol">‹</string>

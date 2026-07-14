@@ -1,47 +1,130 @@
 package pet.project.sudokusolver.recognition
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.atomic.AtomicBoolean
+import pet.project.sudokusolver.data.recognition.SudokuPhotoPickFailure
 import pet.project.sudokusolver.data.recognition.SudokuPhotoPickResult
 import pet.project.sudokusolver.data.recognition.SudokuPhotoPicker
 import pet.project.sudokusolver.domain.SudokuGrid
 
 class AndroidSudokuPhotoPicker(
-    activity: ComponentActivity,
-    private val recognitionRepository: AndroidSudokuRecognitionRepository = AndroidSudokuRecognitionRepository(),
-) : SudokuPhotoPicker {
-    private var pendingResult: ((SudokuPhotoPickResult) -> Unit)? = null
+    private val activity: ComponentActivity,
+    private val recognitionUseCase: AndroidSudokuImageRecognitionUseCase = AndroidSudokuImageRecognitionUseCase(
+        decoder = AndroidSudokuImageDecoder(activity.contentResolver),
+        recognizer = AndroidSudokuRecognitionRepository(),
+    ),
+    private val worker: ExecutorService = Executors.newSingleThreadExecutor(),
+) : SudokuPhotoPicker, AutoCloseable {
+    private var activeResult: ((SudokuPhotoPickResult) -> Unit)? = null
+    private val closed = AtomicBoolean(false)
 
     private val launcher = activity.registerForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
     ) { uri ->
-        val callback = pendingResult
-        pendingResult = null
+        val callback = activeResult
 
-        if (callback == null) return@registerForActivityResult
+        if (callback == null || closed.get()) return@registerForActivityResult
         if (uri == null) {
-            callback(SudokuPhotoPickResult.Cancelled)
-        } else {
-            callback(recognitionRepository.recognize(uri))
+            complete(callback, SudokuPhotoPickResult.Cancelled)
+            return@registerForActivityResult
+        }
+
+        try {
+            worker.execute {
+                val result = recognitionUseCase.recognize(uri)
+                activity.runOnUiThread {
+                    if (!closed.get()) complete(callback, result)
+                }
+            }
+        } catch (_: RejectedExecutionException) {
+            complete(callback, SudokuPhotoPickResult.Failed(SudokuPhotoPickFailure.Unavailable))
         }
     }
 
     override fun pickSudokuPhoto(onResult: (SudokuPhotoPickResult) -> Unit) {
-        pendingResult = onResult
+        if (closed.get()) {
+            onResult(SudokuPhotoPickResult.Failed(SudokuPhotoPickFailure.Unavailable))
+            return
+        }
+        if (activeResult != null) {
+            return
+        }
+
+        activeResult = onResult
         launcher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+
+    private fun complete(
+        callback: (SudokuPhotoPickResult) -> Unit,
+        result: SudokuPhotoPickResult,
+    ) {
+        if (activeResult !== callback) return
+        activeResult = null
+        callback(result)
+    }
+
+    override fun close() {
+        if (closed.compareAndSet(false, true)) {
+            val callback = activeResult
+            activeResult = null
+            callback?.invoke(SudokuPhotoPickResult.Cancelled)
+            worker.shutdownNow()
+        }
     }
 }
 
-class AndroidSudokuRecognitionRepository {
-    fun recognize(uri: Uri): SudokuPhotoPickResult {
-        // TODO: Replace the sample grid with a real CV pipeline:
-        // 1. Decode and normalize the image.
-        // 2. Detect the outer sudoku contour and rectify perspective.
-        // 3. Split the board into 81 cells.
-        // 4. Run OCR/digit classification for each cell.
-        // 5. Return a grid with confidence metadata for user correction.
+class AndroidSudokuImageRecognitionUseCase(
+    private val decoder: AndroidSudokuImageDecoder,
+    private val recognizer: AndroidSudokuImageRecognizer,
+) {
+    fun recognize(uri: Uri): SudokuPhotoPickResult = when (val decoded = decoder.decode(uri)) {
+        is AndroidSudokuImageDecodeResult.Failed -> {
+            SudokuPhotoPickResult.Failed(SudokuPhotoPickFailure.DecodeFailed)
+        }
+
+        is AndroidSudokuImageDecodeResult.Decoded -> {
+            try {
+                recognizer.recognize(decoded.image)
+            } catch (_: Exception) {
+                SudokuPhotoPickResult.Failed(SudokuPhotoPickFailure.RecognitionFailed)
+            } catch (_: OutOfMemoryError) {
+                SudokuPhotoPickResult.Failed(SudokuPhotoPickFailure.RecognitionFailed)
+            } finally {
+                decoded.image.close()
+            }
+        }
+    }
+}
+
+class AndroidSudokuImage(
+    val bitmap: Bitmap,
+    val sourceUri: Uri,
+    val originalWidth: Int,
+    val originalHeight: Int,
+    val sampleSize: Int,
+) : AutoCloseable {
+    override fun close() {
+        if (!bitmap.isRecycled) bitmap.recycle()
+    }
+}
+
+fun interface AndroidSudokuImageRecognizer {
+    fun recognize(image: AndroidSudokuImage): SudokuPhotoPickResult
+}
+
+class AndroidSudokuRecognitionRepository : AndroidSudokuImageRecognizer {
+    override fun recognize(image: AndroidSudokuImage): SudokuPhotoPickResult {
+        check(!image.bitmap.isRecycled) { "Recognition requires live decoded pixels." }
+
+        // Replaced by the OpenCV/LiteRT pipeline in issues #4 and #5. The Android boundary
+        // intentionally accepts normalized pixels now, so those stages never need URI access.
         return SudokuPhotoPickResult.Recognized(SampleRecognizedGrid)
     }
 }

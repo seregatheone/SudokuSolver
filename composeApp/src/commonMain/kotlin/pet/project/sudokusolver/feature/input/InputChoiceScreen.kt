@@ -76,6 +76,7 @@ fun InputChoiceScreen(
                     Button(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(vertical = 16.dp, horizontal = 12.dp),
+                        enabled = !state.isPhotoLoading,
                         onClick = { onIntent(InputChoiceIntent.ManualInputClicked) },
                     ) {
                         Text(stringResource(Res.string.input_manual), textAlign = TextAlign.Center)
@@ -97,11 +98,20 @@ fun InputChoiceScreen(
                 }
 
                 val photoFailure = state.photoFailure
-                if (photoFailure != null) {
+                val photoMessage = when {
+                    photoFailure != null -> photoFailureText(photoFailure)
+                    state.wasPhotoCancelled -> stringResource(Res.string.photo_cancelled)
+                    else -> null
+                }
+                if (photoMessage != null) {
                     Spacer(Modifier.height(20.dp))
                     Text(
-                        text = photoFailureText(photoFailure),
-                        color = MaterialTheme.colorScheme.error,
+                        text = photoMessage,
+                        color = if (photoFailure == null) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -114,5 +124,6 @@ fun InputChoiceScreen(
 @Composable
 private fun photoFailureText(failure: SudokuPhotoPickFailure): String = when (failure) {
     SudokuPhotoPickFailure.Unavailable -> stringResource(Res.string.photo_error_unavailable)
+    SudokuPhotoPickFailure.DecodeFailed -> stringResource(Res.string.photo_error_decode_failed)
     SudokuPhotoPickFailure.RecognitionFailed -> stringResource(Res.string.photo_error_recognition_failed)
 }
