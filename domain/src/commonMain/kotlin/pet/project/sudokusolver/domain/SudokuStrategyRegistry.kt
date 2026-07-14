@@ -70,6 +70,10 @@ internal object SudokuStrategyRegistry {
         EmptyRectangleStrategy,
         XChainStrategy,
         XYChainStrategy,
+        AlternatingInferenceChainStrategy,
+        NiceLoopStrategy,
+        ContinuousLoopStrategy,
+        DiscontinuousLoopStrategy,
         UniqueRectangleStrategy,
         SimpleColoringStrategy,
         MultiColoringStrategy,
@@ -85,6 +89,7 @@ internal object SudokuStrategyRegistry {
 
     fun findNextStep(state: SudokuBoardState): SudokuSolutionStep? {
         for (pattern in patternOrder) {
+            if (pattern == SudokuSolvingPattern.NiceLoop) continue
             strategyFor(pattern)?.findStep(state)?.let { return it }
         }
         return null

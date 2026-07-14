@@ -156,6 +156,21 @@ class InferenceGraphTest {
     }
 
     @Test
+    fun alternatingPathHonorsSearchStateCap() {
+        val path = findAlternatingPath(
+            graph = alternatingFixture(),
+            start = node(0, 1),
+            end = node(79, 1),
+            firstLink = InferenceLinkType.Strong,
+            lastLink = InferenceLinkType.Strong,
+            maxDepth = 7,
+            maximumStates = 1,
+        )
+
+        assertNull(path)
+    }
+
+    @Test
     fun repeatedAlternatingSearchIsDeterministic() {
         val graph = alternatingFixture()
 

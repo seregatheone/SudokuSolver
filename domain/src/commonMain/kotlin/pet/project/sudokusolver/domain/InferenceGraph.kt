@@ -58,6 +58,7 @@ internal fun <N : Comparable<N>> findAlternatingPath(
     lastLink: InferenceLinkType,
     maxDepth: Int,
     minimumDepth: Int = 1,
+    maximumStates: Int = 20_000,
 ): AlternatingInferencePath<N>? = findAlternatingPath(
     graph = graph,
     start = start,
@@ -66,6 +67,7 @@ internal fun <N : Comparable<N>> findAlternatingPath(
     lastLink = lastLink,
     maxDepth = maxDepth,
     minimumDepth = minimumDepth,
+    maximumStates = maximumStates,
 )
 
 internal fun <N : Comparable<N>> findAlternatingPath(
@@ -76,10 +78,12 @@ internal fun <N : Comparable<N>> findAlternatingPath(
     lastLink: InferenceLinkType,
     maxDepth: Int,
     minimumDepth: Int = 1,
+    maximumStates: Int = 20_000,
 ): AlternatingInferencePath<N>? {
     require(start in graph.nodes) { "The start node must belong to the graph." }
     require(minimumDepth >= 1) { "Minimum path depth must be positive." }
     require(maxDepth >= minimumDepth) { "Maximum path depth must not be smaller than minimum depth." }
+    require(maximumStates >= 1) { "Maximum search states must be positive." }
 
     val queue = ArrayDeque<AlternatingSearchState<N>>()
     queue.addLast(
@@ -90,6 +94,7 @@ internal fun <N : Comparable<N>> findAlternatingPath(
             nextLink = firstLink,
         ),
     )
+    var queuedStates = 1
 
     while (queue.isNotEmpty()) {
         val current = queue.removeFirst()
@@ -108,6 +113,7 @@ internal fun <N : Comparable<N>> findAlternatingPath(
 
         for (neighbor in graph.neighbors(current.node, current.nextLink).sorted()) {
             if (neighbor in current.pathNodes) continue
+            if (queuedStates == maximumStates) return null
             queue.addLast(
                 AlternatingSearchState(
                     node = neighbor,
@@ -116,6 +122,7 @@ internal fun <N : Comparable<N>> findAlternatingPath(
                     nextLink = current.nextLink.opposite(),
                 ),
             )
+            queuedStates++
         }
     }
     return null
