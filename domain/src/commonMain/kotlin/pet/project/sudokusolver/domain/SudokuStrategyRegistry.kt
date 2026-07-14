@@ -74,6 +74,7 @@ internal object SudokuStrategyRegistry {
         NiceLoopStrategy,
         ContinuousLoopStrategy,
         DiscontinuousLoopStrategy,
+        GroupedAicStrategy,
         UniqueRectangleStrategy,
         SimpleColoringStrategy,
         MultiColoringStrategy,
