@@ -8,14 +8,19 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -52,7 +57,14 @@ fun BoardScreen(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .safeContentPadding(),
+                .windowInsetsPadding(
+                    WindowInsets.safeContent.only(
+                        WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
+                    ),
+                )
+                .windowInsetsPadding(
+                    WindowInsets.statusBars.only(WindowInsetsSides.Top),
+                ),
         ) {
             if (useWideBoardLayout(maxWidth.value, maxHeight.value)) {
                 WideBoardContent(
@@ -81,7 +93,7 @@ private fun CompactBoardContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BoardToolbar(
@@ -93,9 +105,10 @@ private fun CompactBoardContent(
         BoardViewport(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(1f, fill = false),
             state = state,
             onIntent = onIntent,
+            contentAlignment = Alignment.TopCenter,
         )
         Spacer(Modifier.height(4.dp))
         BoardControlsPanel(
@@ -112,10 +125,11 @@ private fun BoardViewport(
     modifier: Modifier,
     state: BoardState,
     onIntent: (BoardIntent) -> Unit,
+    contentAlignment: Alignment = Alignment.Center,
 ) {
     BoxWithConstraints(
         modifier = modifier,
-        contentAlignment = Alignment.Center,
+        contentAlignment = contentAlignment,
     ) {
         SudokuBoard(
             modifier = Modifier.width(
