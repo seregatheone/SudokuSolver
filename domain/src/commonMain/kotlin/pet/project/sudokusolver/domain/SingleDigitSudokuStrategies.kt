@@ -5,8 +5,18 @@ internal object SkyscraperStrategy : SudokuStrategy {
 
     override fun findStep(state: SudokuBoardState): SudokuSolutionStep? {
         for (value in 1..9) {
-            findStepInUnits(state, value, sudokuRows())?.let { return it }
-            findStepInUnits(state, value, sudokuColumns())?.let { return it }
+            findStepInUnits(
+                state = state,
+                value = value,
+                units = sudokuRows(),
+                basesShareUnit = { first, second -> first.column() == second.column() },
+            )?.let { return it }
+            findStepInUnits(
+                state = state,
+                value = value,
+                units = sudokuColumns(),
+                basesShareUnit = { first, second -> first.row() == second.row() },
+            )?.let { return it }
         }
         return null
     }
@@ -15,6 +25,7 @@ internal object SkyscraperStrategy : SudokuStrategy {
         state: SudokuBoardState,
         value: Int,
         units: List<List<Int>>,
+        basesShareUnit: (Int, Int) -> Boolean,
     ): SudokuSolutionStep? {
         val strongLinks = units.mapNotNull { unit ->
             val indexes = unit.filter { index ->
@@ -26,9 +37,7 @@ internal object SkyscraperStrategy : SudokuStrategy {
         for ((firstLink, secondLink) in strongLinks.combinations(2)) {
             val connectedPairs = firstLink.flatMap { firstIndex ->
                 secondLink.mapNotNull { secondIndex ->
-                    (firstIndex to secondIndex).takeIf {
-                        secondIndex in SudokuRules.peerIndexes(firstIndex)
-                    }
+                    (firstIndex to secondIndex).takeIf { basesShareUnit(firstIndex, secondIndex) }
                 }
             }
             if (connectedPairs.size != 1) continue
