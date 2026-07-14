@@ -36,7 +36,7 @@ internal fun StepControls(
     onNext: () -> Unit,
     dense: Boolean = false,
 ) {
-    val controlHeight = if (dense) 40.dp else 48.dp
+    val controlHeight = if (dense) 36.dp else 48.dp
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -80,70 +80,125 @@ internal fun StepControls(
 
 @Composable
 internal fun InputTools(
+    modifier: Modifier = Modifier,
     enabled: Boolean,
     isPencilMode: Boolean,
     onPencilModeToggle: () -> Unit,
     onDelete: () -> Unit,
     dense: Boolean = false,
 ) {
-    val controlHeight = if (dense) 40.dp else 48.dp
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = 420.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(controlHeight)
-                .clickable(enabled = enabled, onClick = onPencilModeToggle),
-            shape = MaterialTheme.shapes.small,
-            color = if (isPencilMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+    val controlHeight = if (dense) 36.dp else 48.dp
+    if (dense) {
+        Column(
+            modifier = modifier.widthIn(max = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (isPencilMode) {
-                        "✓ ${stringResource(Res.string.board_pencil_symbol)}"
-                    } else {
-                        stringResource(Res.string.board_pencil_symbol)
-                    },
-                    color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
-                    fontSize = 17.sp,
-                    fontWeight = if (isPencilMode) FontWeight.SemiBold else FontWeight.Normal,
-                )
-            }
+            PencilToolButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(controlHeight),
+                enabled = enabled,
+                isPencilMode = isPencilMode,
+                onClick = onPencilModeToggle,
+                dense = true,
+            )
+            DeleteButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(controlHeight),
+                enabled = enabled,
+                onClick = onDelete,
+            )
         }
-
-        OutlinedButton(
-            modifier = Modifier
-                .weight(2f)
-                .height(controlHeight),
-            enabled = enabled,
-            shape = MaterialTheme.shapes.small,
-            contentPadding = PaddingValues(0.dp),
-            onClick = onDelete,
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .widthIn(max = 420.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = stringResource(Res.string.board_delete_digit),
-                style = MaterialTheme.typography.labelMedium,
+            PencilToolButton(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(controlHeight),
+                enabled = enabled,
+                isPencilMode = isPencilMode,
+                onClick = onPencilModeToggle,
+                dense = false,
+            )
+            DeleteButton(
+                modifier = Modifier
+                    .weight(2f)
+                    .height(controlHeight),
+                enabled = enabled,
+                onClick = onDelete,
             )
         }
     }
 }
 
 @Composable
+private fun PencilToolButton(
+    modifier: Modifier,
+    enabled: Boolean,
+    isPencilMode: Boolean,
+    onClick: () -> Unit,
+    dense: Boolean,
+) {
+    Surface(
+        modifier = modifier.clickable(enabled = enabled, onClick = onClick),
+        shape = MaterialTheme.shapes.small,
+        color = if (isPencilMode) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = if (isPencilMode) {
+                    "✓ ${stringResource(Res.string.board_pencil_symbol)}"
+                } else {
+                    stringResource(Res.string.board_pencil_symbol)
+                },
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+                fontSize = if (dense) 15.sp else 17.sp,
+                fontWeight = if (isPencilMode) FontWeight.SemiBold else FontWeight.Normal,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeleteButton(
+    modifier: Modifier,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        modifier = modifier,
+        enabled = enabled,
+        shape = MaterialTheme.shapes.small,
+        contentPadding = PaddingValues(0.dp),
+        onClick = onClick,
+    ) {
+        Text(
+            text = stringResource(Res.string.board_delete_digit),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelMedium,
+        )
+    }
+}
+
+@Composable
 internal fun NumberPad(
+    modifier: Modifier = Modifier,
     hasSelectedCell: Boolean,
     allowedValues: Set<Int>,
     onValueSelected: (Int?) -> Unit,
     dense: Boolean = false,
 ) {
     val spacing = if (dense) 4.dp else 8.dp
-    val controlHeight = if (dense) 40.dp else 48.dp
+    val controlHeight = if (dense) 36.dp else 48.dp
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .widthIn(max = 420.dp),
         verticalArrangement = Arrangement.spacedBy(spacing),
@@ -165,7 +220,11 @@ internal fun NumberPad(
                     ) {
                         Text(
                             text = value.toString(),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = if (dense) {
+                                MaterialTheme.typography.titleSmall
+                            } else {
+                                MaterialTheme.typography.titleMedium
+                            },
                         )
                     }
                 }
@@ -182,7 +241,7 @@ internal fun ModeChooser(
     dense: Boolean = false,
 ) {
     val spacing = if (dense) 4.dp else 8.dp
-    val controlHeight = if (dense) 40.dp else 52.dp
+    val controlHeight = if (dense) 36.dp else 52.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
