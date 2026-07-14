@@ -71,3 +71,65 @@ internal object SkyscraperStrategy : SudokuStrategy {
         return null
     }
 }
+
+internal object TwoStringKiteStrategy : SudokuStrategy {
+    override val pattern: SudokuSolvingPattern = SudokuSolvingPattern.TwoStringKite
+
+    override fun findStep(state: SudokuBoardState): SudokuSolutionStep? {
+        for (value in 1..9) {
+            val rowLinks = strongLinks(state, value, sudokuRows())
+            val columnLinks = strongLinks(state, value, sudokuColumns())
+
+            for (rowLink in rowLinks) {
+                for (columnLink in columnLinks) {
+                    if (rowLink.any { it in columnLink }) continue
+
+                    for (rowBridge in rowLink) {
+                        for (columnBridge in columnLink) {
+                            if (!shareBox(rowBridge, columnBridge)) continue
+
+                            val rowRoof = rowLink.single { it != rowBridge }
+                            val columnRoof = columnLink.single { it != columnBridge }
+                            val linkIndexes = rowLink + columnLink
+                            val eliminations = SudokuRules.peerIndexes(rowRoof)
+                                .intersect(SudokuRules.peerIndexes(columnRoof))
+                                .filter { index ->
+                                    index !in linkIndexes &&
+                                        state.board[index] == 0 &&
+                                        value in state.candidates[index]
+                                }
+                                .sorted()
+                                .map { index ->
+                                    CandidateElimination(
+                                        row = index.row(),
+                                        column = index.column(),
+                                        values = setOf(value),
+                                    )
+                                }
+
+                            SudokuStepFactory.elimination(
+                                pattern = pattern,
+                                relatedIndexes = linkIndexes,
+                                eliminations = eliminations,
+                            )?.let { return it }
+                        }
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun strongLinks(
+        state: SudokuBoardState,
+        value: Int,
+        units: List<List<Int>>,
+    ): List<List<Int>> = units.mapNotNull { unit ->
+        unit.filter { index ->
+            state.board[index] == 0 && value in state.candidates[index]
+        }.takeIf { it.size == 2 }
+    }
+
+    private fun shareBox(first: Int, second: Int): Boolean =
+        first.row() / 3 == second.row() / 3 && first.column() / 3 == second.column() / 3
+}

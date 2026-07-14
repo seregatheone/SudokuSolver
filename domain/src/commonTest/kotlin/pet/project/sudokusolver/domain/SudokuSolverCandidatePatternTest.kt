@@ -3,6 +3,7 @@ package pet.project.sudokusolver.domain
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SudokuSolverCandidatePatternTest {
@@ -67,4 +68,41 @@ class SudokuSolverCandidatePatternTest {
         )
     }
 
+    @Test
+    fun twoStringKiteEliminatesCandidateSeenByBothRoofs() {
+        val withoutFive = (1..9).toSet() - 5
+        val cells = MutableList(SudokuGrid.CellCount) { SudokuCell(notes = withoutFive) }
+        cells[0] = SudokuCell(notes = setOf(1, 5))
+        cells[4] = SudokuCell(notes = setOf(2, 5))
+        cells[10] = SudokuCell(notes = setOf(3, 5))
+        cells[46] = SudokuCell(notes = setOf(4, 5))
+        cells[49] = SudokuCell(notes = setOf(5, 6))
+        val state = checkNotNull(SudokuBoardState.from(SudokuGrid(cells)))
+
+        val step = TwoStringKiteStrategy.findStep(state)
+
+        assertNotNull(step)
+        assertEquals(SudokuSolvingPattern.TwoStringKite, step.pattern)
+        assertEquals(
+            setOf(5),
+            step.eliminations.single { it.row == 5 && it.column == 4 }.values,
+        )
+        assertEquals(
+            setOf(CellPosition(0, 0), CellPosition(0, 4), CellPosition(1, 1), CellPosition(5, 1)),
+            step.relatedCells.toSet(),
+        )
+    }
+
+    @Test
+    fun twoStringKiteRejectsLinksThatShareAnEndpoint() {
+        val withoutFive = (1..9).toSet() - 5
+        val cells = MutableList(SudokuGrid.CellCount) { SudokuCell(notes = withoutFive) }
+        cells[0] = SudokuCell(notes = setOf(1, 5))
+        cells[4] = SudokuCell(notes = setOf(2, 5))
+        cells[45] = SudokuCell(notes = setOf(3, 5))
+        cells[49] = SudokuCell(notes = setOf(4, 5))
+        val state = checkNotNull(SudokuBoardState.from(SudokuGrid(cells)))
+
+        assertNull(TwoStringKiteStrategy.findStep(state))
+    }
 }
