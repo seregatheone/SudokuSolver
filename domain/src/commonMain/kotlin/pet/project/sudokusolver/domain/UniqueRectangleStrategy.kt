@@ -10,14 +10,60 @@ internal object UniqueRectangleStrategy : SudokuStrategy {
                 if (indexes.any { state.board[it] != 0 }) continue
                 if (indexes.map(::boxIndex).distinct().size != 2) continue
 
-                val pairs = indexes.filter { state.candidates[it].size == 2 }
-                if (pairs.size != 3) continue
-                val pairValues = pairs.map { state.candidates[it].toSet() }.distinct().singleOrNull() ?: continue
-                val extraIndex = indexes.first { it !in pairs }
-                if (!state.candidates[extraIndex].containsAll(pairValues) || state.candidates[extraIndex].size <= 2) continue
+                findTypeOne(state, indexes)?.let { return it }
+                findHiddenRectangle(state, indexes)?.let { return it }
+            }
+        }
+        return null
+    }
 
-                val eliminations = listOf(CandidateElimination(extraIndex.row(), extraIndex.column(), pairValues))
-                SudokuStepFactory.elimination(pattern, indexes, eliminations)?.let { return it }
+    private fun findTypeOne(
+        state: SudokuBoardState,
+        indexes: List<Int>,
+    ): SudokuSolutionStep? {
+        val pairs = indexes.filter { state.candidates[it].size == 2 }
+        if (pairs.size != 3) return null
+        val pairValues = pairs.map { state.candidates[it].toSet() }.distinct().singleOrNull() ?: return null
+        val extraIndex = indexes.first { it !in pairs }
+        if (!state.candidates[extraIndex].containsAll(pairValues) || state.candidates[extraIndex].size <= 2) return null
+
+        val eliminations = listOf(CandidateElimination(extraIndex.row(), extraIndex.column(), pairValues))
+        return SudokuStepFactory.elimination(pattern, indexes, eliminations)
+    }
+
+    private fun findHiddenRectangle(
+        state: SudokuBoardState,
+        indexes: List<Int>,
+    ): SudokuSolutionStep? {
+        val pairValuesOptions = indexes
+            .filter { state.candidates[it].size == 2 }
+            .map { state.candidates[it].toSet() }
+            .distinct()
+        for (pairValues in pairValuesOptions) {
+            if (indexes.any { !state.candidates[it].containsAll(pairValues) }) continue
+            val purePairIndexes = indexes.filter { state.candidates[it] == pairValues }
+            if (purePairIndexes.size !in 1..2) continue
+
+            for (startIndex in purePairIndexes) {
+                val targetIndex = indexes.single { index ->
+                    index.row() != startIndex.row() && index.column() != startIndex.column()
+                }
+                for (strongValue in pairValues) {
+                    val rowHasOutsideCandidate = sudokuRows()[targetIndex.row()].any { index ->
+                        index !in indexes && state.board[index] == 0 && strongValue in state.candidates[index]
+                    }
+                    val columnHasOutsideCandidate = sudokuColumns()[targetIndex.column()].any { index ->
+                        index !in indexes && state.board[index] == 0 && strongValue in state.candidates[index]
+                    }
+                    if (rowHasOutsideCandidate || columnHasOutsideCandidate) continue
+
+                    val removedValue = pairValues.single { it != strongValue }
+                    if (removedValue !in state.candidates[targetIndex]) continue
+                    val eliminations = listOf(
+                        CandidateElimination(targetIndex.row(), targetIndex.column(), setOf(removedValue)),
+                    )
+                    SudokuStepFactory.elimination(pattern, indexes, eliminations)?.let { return it }
+                }
             }
         }
         return null
