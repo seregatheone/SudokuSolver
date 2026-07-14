@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import time
@@ -16,6 +17,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPORT = PROJECT_ROOT / "docs/top1465/baseline/report.json"
 DEFAULT_HELPER = Path.home() / ".codex/skills/issue-creator/scripts/create_issue_checked.sh"
+TOP1465_TITLE_PATTERN = re.compile(r"^top1465 #([0-9]{4}):")
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,6 +65,22 @@ def existing_issues(repo: str) -> dict[str, dict[str, Any]]:
     return issues
 
 
+def validated_issue_url(
+    result: dict[str, Any],
+    repo: str,
+    line_number: int,
+    title: str,
+) -> str:
+    url = result.get("url")
+    expected = re.compile(rf"https://github\.com/{re.escape(repo)}/issues/[1-9][0-9]*")
+    if not isinstance(url, str) or expected.fullmatch(url) is None:
+        raise RuntimeError(
+            f"issue helper returned invalid URL for top1465 line {line_number} "
+            f"({title!r}): {url!r}",
+        )
+    return url
+
+
 def issue_title(puzzle: dict[str, Any]) -> str:
     line = puzzle["lineNumber"]
     if puzzle.get("firstIncorrectStep") or puzzle.get("firstIncorrectCandidateLoss"):
@@ -70,6 +88,11 @@ def issue_title(puzzle: dict[str, Any]) -> str:
     else:
         outcome = "логический решатель останавливается"
     return f"top1465 #{line:04d}: {outcome}"
+
+
+def line_number_from_issue_title(title: str) -> int | None:
+    match = TOP1465_TITLE_PATTERN.match(title)
+    return int(match.group(1)) if match else None
 
 
 def diagnostic_text(puzzle: dict[str, Any]) -> str:
@@ -169,7 +192,12 @@ def main() -> int:
         if not puzzle["logicallySolved"] and puzzle["lineNumber"] >= args.start_line
     ]
     known = existing_issues(args.repo)
-    pending = [puzzle for puzzle in puzzles if issue_title(puzzle) not in known]
+    known_line_numbers = {
+        line_number
+        for title in known
+        if (line_number := line_number_from_issue_title(title)) is not None
+    }
+    pending = [puzzle for puzzle in puzzles if puzzle["lineNumber"] not in known_line_numbers]
     selected = pending if args.limit == 0 else pending[: args.limit]
 
     print(
@@ -217,8 +245,15 @@ def main() -> int:
             )
         finally:
             body_path.unlink(missing_ok=True)
-        known[title] = {"title": title, "url": result["url"]}
-        print(f"CREATED {index}/{len(selected)} {result['url']}")
+        issue_url = validated_issue_url(
+            result = result,
+            repo = args.repo,
+            line_number = puzzle["lineNumber"],
+            title = title,
+        )
+        known[title] = {"title": title, "url": issue_url}
+        known_line_numbers.add(puzzle["lineNumber"])
+        print(f"CREATED {index}/{len(selected)} {issue_url}")
         if index != len(selected) and args.pause_seconds > 0:
             time.sleep(args.pause_seconds)
     return 0
