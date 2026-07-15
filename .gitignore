@@ -1,19 +1,65 @@
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# IDEs and local agent configuration
+.idea/
+.vscode/
+.fleet/
 *.iml
-.kotlin
-.gradle
+.codex/
+.claude/
+.qwen/
+AGENTS.md
+
+# Aider local history and caches
+.aider.chat.history.md
+.aider.input.history
+.aider.tags.cache.v*/
+
+# Gradle and Kotlin
+.gradle/
+.kotlin/
 **/build/
-xcuserdata
 !src/**/build/
 local.properties
-.idea
-.DS_Store
-captures
-.externalNativeBuild
-.cxx
+
+# Android and native build output
+.externalNativeBuild/
+.cxx/
+captures/
+*.apk
+*.aab
+*.hprof
+
+# Local environment, secrets, and signing material
+.env
+.env.*
+!.env.example
+secrets.properties
+keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Apple and Xcode user/build state
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.swiftpm/
+Pods/
 *.xcodeproj/*
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/
 !*.xcodeproj/project.xcworkspace/
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
+
+# JavaScript tooling
 node_modules/
+
+# Temporary files
+*.log
+*.tmp
+*.bak
